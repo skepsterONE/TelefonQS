@@ -38,6 +38,9 @@
 // A Boolean value indicating whether the source call has been transferred.
 @property(nonatomic, assign) BOOL sourceCallTransferred;
 
+// Automatically transfers once the consultation call becomes active.
+@property(nonatomic, assign) BOOL automaticallyTransfersOnConfirm;
+
 @end
 
 
@@ -85,7 +88,18 @@
 }
 
 - (void)transferCall {
+    self.automaticallyTransfersOnConfirm = NO;
     [[[self sourceCallController] call] attendedTransferToCall:[self call]];
+}
+
+- (void)startTransferToURI:(AKSIPURI *)destinationURI phoneLabel:(NSString *)phoneLabel automatically:(BOOL)automaticallyTransfer {
+    self.automaticallyTransfersOnConfirm = automaticallyTransfer;
+    if (self.sourceCallController.isCallActive && !self.sourceCallController.isCallOnHold) {
+        [self.sourceCallController toggleCallHold];
+    }
+    [self.accountController makeCallToURI:destinationURI
+                               phoneLabel:phoneLabel
+                   callTransferController:self];
 }
 
 - (IBAction)closeSheet:(id)sender {
@@ -96,6 +110,7 @@
 }
 
 - (IBAction)showInitialState:(id)sender {
+    self.automaticallyTransfersOnConfirm = NO;
     if ([self isCallActive]) {
         [self hangUpCall];
     }
@@ -175,6 +190,9 @@
 - (void)SIPCallDidConfirm:(NSNotification *)notification {
     [super SIPCallDidConfirm:notification];
     [self.activeCallTransferViewController allowTransfer];
+    if (self.automaticallyTransfersOnConfirm) {
+        [self transferCall];
+    }
 }
 
 - (void)SIPCallDidDisconnect:(NSNotification *)notification {
@@ -187,6 +205,9 @@
 - (void)SIPCallMediaDidBecomeActive:(NSNotification *)notification {
     [super SIPCallMediaDidBecomeActive:notification];
     [self.activeCallTransferViewController allowTransfer];
+    if (self.automaticallyTransfersOnConfirm) {
+        [self transferCall];
+    }
 }
 
 - (void)SIPCallDidLocalHold:(NSNotification *)notification {
@@ -197,6 +218,7 @@
 - (void)SIPCallDidRemoteHold:(NSNotification *)notification {
     [super SIPCallDidRemoteHold:notification];
     [self.activeCallTransferViewController disallowTransfer];
+    self.automaticallyTransfersOnConfirm = NO;
 }
 
 

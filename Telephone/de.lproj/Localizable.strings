@@ -206,3 +206,75 @@
 
 /* Product name. */
 "Yearly" = "Jährlich";
+
+/* Operator panel station key editor clear button. */
+"Clear" = "Leeren";
+
+/* Operator panel station editor destination label. */
+"Destination" = "Ziel";
+
+/* End Call. Call menu item. */
+"End Call" = "Anruf beenden";
+
+/* Operator panel station editor name label. */
+"Name" = "Name";
+
+/* Operator panel no active call title. */
+"No active call" = "Kein aktiver Anruf";
+
+/* Operator panel no account status. */
+"No account available" = "Kein Konto verfügbar";
+
+/* Number or SIP address placeholder. */
+"Number or SIP address" = "Nummer oder SIP-Adresse";
+
+/* Operator panel station editor number column and placeholder. */
+"Number" = "Nummer";
+
+/* Operator panel idle hint. */
+"Use a station key to place a call, or wait for an incoming call to control it here." = "Nutzen Sie eine Stationstaste für einen Anruf oder warten Sie auf einen eingehenden Anruf, um ihn hier zu steuern.";
+
+/* Operator panel idle hint. */
+"Use a station key to place a call. Configure the keys with name and number as needed." = "Nutzen Sie eine Stationstaste für einen Anruf. Konfigurieren Sie die Tasten bei Bedarf mit Name und Nummer.";
+
+/* Operator panel active hint. */
+"Use the buttons below to control the current call or transfer it with a station key." = "Steuern Sie den aktuellen Anruf mit den Tasten unten oder verbinden Sie ihn per Stationstaste.";
+
+/* Operator panel no account hint. */
+"Enable at least one account to use the operator panel." = "Aktivieren Sie mindestens ein Konto, um das Vermittlungsfenster zu verwenden.";
+
+/* Operator panel empty station button. */
+"Assign Station" = "Taste belegen";
+
+/* Operator panel station keys help. */
+"Click to call or transfer. Click an empty key or hold Option while clicking to edit it." = "Klicken Sie zum Anrufen oder Verbinden. Klicken Sie auf eine leere Taste oder halten Sie beim Klicken die Wahltaste gedrückt, um sie zu bearbeiten.";
+
+/* Operator panel station key editor text. */
+"Save a label and destination for this station key." = "Speichern Sie eine Bezeichnung und ein Ziel für diese Stationstaste.";
+
+/* Operator panel configure station keys button and title. */
+"Configure Station Keys" = "Stationstasten konfigurieren";
+
+/* Operator panel station editor text. */
+"Set name and number for each of the 12 station keys." = "Legen Sie fuer jede der 12 Stationstasten einen Namen und eine Nummer fest.";
+
+/* Operator panel station editor text. */
+"Set name and number for each of the 14 station keys." = "Legen Sie fuer jede der 14 Stationstasten einen Namen und eine Nummer fest.";
+
+/* Operator panel station editor text. */
+"Set name and number for each of the 16 station keys." = "Legen Sie fuer jede der 16 Stationstasten einen Namen und eine Nummer fest.";
+
+/* Clear all button. */
+"Clear All" = "Alle loeschen";
+
+/* Operator panel station editor key column. */
+"Key" = "Taste";
+
+/* Operator panel station keys title. */
+"Station Keys" = "Stationstasten";
+
+/* Operator panel station key editor title. */
+"Station Key %ld" = "Stationstaste %ld";
+
+/* Operator panel window title. */
+"Operator Panel" = "Vermittlungsfenster";

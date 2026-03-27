@@ -32,6 +32,7 @@ class UserDefaultsKeys: NSObject {
     static let telephoneNumberFormatterSplitsLastFourDigits = "TelephoneNumberFormatterSplitsLastFourDigits"
     static let outboundProxyHost = "OutboundProxyHost"
     static let outboundProxyPort = "OutboundProxyPort"
+    static let operatorPanelStations = "OperatorPanelStations"
     static let useICE = "UseICE"
     static let useDNSSRV = "UseDNSSRV"
     static let useQoS = "UseQoS"

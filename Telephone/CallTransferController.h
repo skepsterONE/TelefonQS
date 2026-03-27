@@ -21,6 +21,7 @@
 #import "ActiveAccountTransferViewController.h"
 #import "CallController.h"
 
+@class AKSIPURI;
 
 // Call transfer controller.
 @interface CallTransferController : CallController
@@ -30,6 +31,9 @@
 
 // Transfers source call controller's call to the receiver's call.
 - (void)transferCall;
+
+// Starts a consultation call for transferring the source call.
+- (void)startTransferToURI:(AKSIPURI *)destinationURI phoneLabel:(NSString *)phoneLabel automatically:(BOOL)automaticallyTransfer;
 
 // Closes a sheet.
 - (IBAction)closeSheet:(id)sender;

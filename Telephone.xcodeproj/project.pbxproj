@@ -355,6 +355,7 @@
 		8A97060620FFAE3200984D39 /* PresentationSoundIO.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA7F6D4A1C0387160064DA3A /* PresentationSoundIO.swift */; };
 		8A9843D02746C02000EC0ACF /* UserDefaultsKeys.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8A9843CF2746C02000EC0ACF /* UserDefaultsKeys.swift */; };
 		8A9843D12746C56E00EC0ACF /* UserDefaultsKeys.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8A9843CF2746C02000EC0ACF /* UserDefaultsKeys.swift */; };
+		B10000012700000100000003 /* OperatorPanelController.m in Sources */ = {isa = PBXBuildFile; fileRef = B10000012700000100000002 /* OperatorPanelController.m */; };
 		8A9A76372433B5E7002664CE /* IPVersionSettingsMigrationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8A9A76362433B5E7002664CE /* IPVersionSettingsMigrationTests.swift */; };
 		8A9A76392433B6F7002664CE /* IPVersionSettingsMigration.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8A9A76382433B6F7002664CE /* IPVersionSettingsMigration.swift */; };
 		8A9A763A2433B6F7002664CE /* IPVersionSettingsMigration.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8A9A76382433B6F7002664CE /* IPVersionSettingsMigration.swift */; };
@@ -1238,6 +1239,8 @@
 		8A9705FD20FF728E00984D39 /* SystemAudioDevices+Equatable.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "SystemAudioDevices+Equatable.swift"; sourceTree = "<group>"; };
 		8A9705FF20FF99EF00984D39 /* SoundIO+Equality.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "SoundIO+Equality.swift"; sourceTree = "<group>"; };
 		8A9843CF2746C02000EC0ACF /* UserDefaultsKeys.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UserDefaultsKeys.swift; sourceTree = "<group>"; };
+		B10000012700000100000001 /* OperatorPanelController.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = OperatorPanelController.h; sourceTree = "<group>"; };
+		B10000012700000100000002 /* OperatorPanelController.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = OperatorPanelController.m; sourceTree = "<group>"; };
 		8A9A76362433B5E7002664CE /* IPVersionSettingsMigrationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = IPVersionSettingsMigrationTests.swift; path = TelephoneTests/IPVersionSettingsMigrationTests.swift; sourceTree = SOURCE_ROOT; };
 		8A9A76382433B6F7002664CE /* IPVersionSettingsMigration.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IPVersionSettingsMigration.swift; sourceTree = "<group>"; };
 		8A9D5FC92007DCEF005AAF9D /* BackgroundActivityUserAgentEventTarget.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BackgroundActivityUserAgentEventTarget.swift; sourceTree = "<group>"; };
@@ -1852,6 +1855,8 @@
 				AAE39A3A1BDA59F100EFB7BC /* NSUserDefaults+KeyValueSettings.swift */,
 				8AA689951FFFED1E00BA369B /* NSWorkspace+FileBrowser.swift */,
 				8AA689971FFFEDA000BA369B /* NSWorkspace+WebBrowser.swift */,
+				B10000012700000100000001 /* OperatorPanelController.h */,
+				B10000012700000100000002 /* OperatorPanelController.m */,
 				8AC443BE1F90E21E00ECE463 /* OrphanLogFileRemoval.swift */,
 				8ADD6A691CE0C8CF001EDBBA /* PresenterFactory.swift */,
 				8AD2C5F01EAE0C94005EED3E /* RestoredSelectionIndex.swift */,
@@ -3862,6 +3867,7 @@
 				8A4B600A2125DA3300B67357 /* CoreAudioChangeEventSource.swift in Sources */,
 				AA4BD4D80E07C305005A71B2 /* AppController.m in Sources */,
 				8ADD6A801CE0F995001EDBBA /* StoreViewController.swift in Sources */,
+				B10000012700000100000003 /* OperatorPanelController.m in Sources */,
 				AA2C03F31BD7BE36001D25F9 /* CompositionRoot.swift in Sources */,
 				8A62B08B20D866C500716688 /* CoreAudioSystemAudioDevicesFactory.swift in Sources */,
 				AABAD7ED0E0C171A00CB5930 /* PreferencesController.m in Sources */,

@@ -207,3 +207,74 @@
 /* Product name. */
 "Yearly" = "Yearly";
 
+/* Operator panel station key editor clear button. */
+"Clear" = "Clear";
+
+/* Operator panel station editor destination label. */
+"Destination" = "Destination";
+
+/* End Call. Call menu item. */
+"End Call" = "End Call";
+
+/* Operator panel station editor name label. */
+"Name" = "Name";
+
+/* Operator panel no active call title. */
+"No active call" = "No active call";
+
+/* Operator panel no account status. */
+"No account available" = "No account available";
+
+/* Number or SIP address placeholder. */
+"Number or SIP address" = "Number or SIP address";
+
+/* Operator panel station editor number column and placeholder. */
+"Number" = "Number";
+
+/* Operator panel idle hint. */
+"Use a station key to place a call, or wait for an incoming call to control it here." = "Use a station key to place a call, or wait for an incoming call to control it here.";
+
+/* Operator panel idle hint. */
+"Use a station key to place a call. Configure the keys with name and number as needed." = "Use a station key to place a call. Configure the keys with name and number as needed.";
+
+/* Operator panel active hint. */
+"Use the buttons below to control the current call or transfer it with a station key." = "Use the buttons below to control the current call or transfer it with a station key.";
+
+/* Operator panel no account hint. */
+"Enable at least one account to use the operator panel." = "Enable at least one account to use the operator panel.";
+
+/* Operator panel empty station button. */
+"Assign Station" = "Assign Station";
+
+/* Operator panel station keys help. */
+"Click to call or transfer. Click an empty key or hold Option while clicking to edit it." = "Click to call or transfer. Click an empty key or hold Option while clicking to edit it.";
+
+/* Operator panel station key editor text. */
+"Save a label and destination for this station key." = "Save a label and destination for this station key.";
+
+/* Operator panel configure station keys button and title. */
+"Configure Station Keys" = "Configure Station Keys";
+
+/* Operator panel station editor text. */
+"Set name and number for each of the 12 station keys." = "Set name and number for each of the 12 station keys.";
+
+/* Operator panel station editor text. */
+"Set name and number for each of the 14 station keys." = "Set name and number for each of the 14 station keys.";
+
+/* Operator panel station editor text. */
+"Set name and number for each of the 16 station keys." = "Set name and number for each of the 16 station keys.";
+
+/* Clear all button. */
+"Clear All" = "Clear All";
+
+/* Operator panel station editor key column. */
+"Key" = "Key";
+
+/* Operator panel station keys title. */
+"Station Keys" = "Station Keys";
+
+/* Operator panel station key editor title. */
+"Station Key %ld" = "Station Key %ld";
+
+/* Operator panel window title. */
+"Operator Panel" = "Operator Panel";

@@ -206,3 +206,75 @@
 
 /* Product name. */
 "Yearly" = "Ежегодно";
+
+/* Operator panel station key editor clear button. */
+"Clear" = "Очистить";
+
+/* Operator panel station editor destination label. */
+"Destination" = "Назначение";
+
+/* End Call. Call menu item. */
+"End Call" = "Завершить звонок";
+
+/* Operator panel station editor name label. */
+"Name" = "Имя";
+
+/* Operator panel no active call title. */
+"No active call" = "Нет активного звонка";
+
+/* Operator panel no account status. */
+"No account available" = "Нет доступного аккаунта";
+
+/* Number or SIP address placeholder. */
+"Number or SIP address" = "Номер или SIP-адрес";
+
+/* Operator panel station editor number column and placeholder. */
+"Number" = "Номер";
+
+/* Operator panel idle hint. */
+"Use a station key to place a call, or wait for an incoming call to control it here." = "Используйте клавишу станции для звонка или дождитесь входящего звонка, чтобы управлять им здесь.";
+
+/* Operator panel idle hint. */
+"Use a station key to place a call. Configure the keys with name and number as needed." = "Используйте клавишу станции для звонка. При необходимости настройте клавиши, указав имя и номер.";
+
+/* Operator panel active hint. */
+"Use the buttons below to control the current call or transfer it with a station key." = "Используйте кнопки ниже, чтобы управлять текущим звонком или перевести его на клавишу станции.";
+
+/* Operator panel no account hint. */
+"Enable at least one account to use the operator panel." = "Включите хотя бы один аккаунт, чтобы пользоваться панелью оператора.";
+
+/* Operator panel empty station button. */
+"Assign Station" = "Назначить клавишу";
+
+/* Operator panel station keys help. */
+"Click to call or transfer. Click an empty key or hold Option while clicking to edit it." = "Нажмите для вызова или перевода. Нажмите на пустую клавишу или удерживайте Option при нажатии, чтобы изменить ее.";
+
+/* Operator panel station key editor text. */
+"Save a label and destination for this station key." = "Сохраните подпись и назначение для этой клавиши станции.";
+
+/* Operator panel configure station keys button and title. */
+"Configure Station Keys" = "Настроить клавиши станции";
+
+/* Operator panel station editor text. */
+"Set name and number for each of the 12 station keys." = "Задайте имя и номер для каждой из 12 клавиш станции.";
+
+/* Operator panel station editor text. */
+"Set name and number for each of the 14 station keys." = "Задайте имя и номер для каждой из 14 клавиш станции.";
+
+/* Operator panel station editor text. */
+"Set name and number for each of the 16 station keys." = "Задайте имя и номер для каждой из 16 клавиш станции.";
+
+/* Clear all button. */
+"Clear All" = "Очистить все";
+
+/* Operator panel station editor key column. */
+"Key" = "Клавиша";
+
+/* Operator panel station keys title. */
+"Station Keys" = "Клавиши станции";
+
+/* Operator panel station key editor title. */
+"Station Key %ld" = "Клавиша станции %ld";
+
+/* Operator panel window title. */
+"Operator Panel" = "Панель оператора";

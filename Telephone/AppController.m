@@ -35,6 +35,7 @@
 #import "AuthenticationFailureController.h"
 #import "CallController.h"
 #import "NameServers.h"
+#import "OperatorPanelController.h"
 #import "PreferencesController.h"
 
 #import "Telephone-Swift.h"
@@ -67,6 +68,7 @@ NS_ASSUME_NONNULL_BEGIN
 @property(nonatomic, copy) NSString *destinationToCall;
 @property(nonatomic, getter=isUserSessionActive) BOOL userSessionActive;
 @property(nonatomic, readonly) NameServers *nameServers;
+@property(nonatomic, readonly) OperatorPanelController *operatorPanelController;
 
 @end
 
@@ -76,12 +78,20 @@ NS_ASSUME_NONNULL_END
 @implementation AppController
 
 @synthesize accountSetupController = _accountSetupController;
+@synthesize operatorPanelController = _operatorPanelController;
 
 - (AccountSetupController *)accountSetupController {
     if (_accountSetupController == nil) {
         _accountSetupController = [[AccountSetupController alloc] init];
     }
     return _accountSetupController;
+}
+
+- (OperatorPanelController *)operatorPanelController {
+    if (_operatorPanelController == nil) {
+        _operatorPanelController = [[OperatorPanelController alloc] initWithAccountControllers:self.accountControllers];
+    }
+    return _operatorPanelController;
 }
 
 - (instancetype)init {
@@ -212,6 +222,10 @@ NS_ASSUME_NONNULL_END
 
 - (IBAction)showPreferencePanel:(id)sender {
     [self.preferencesController showWindowCentered];
+}
+
+- (IBAction)showOperatorPanel:(id)sender {
+    [self.operatorPanelController showWindow:sender];
 }
 
 - (IBAction)addAccountOnFirstLaunch:(id)sender {
@@ -514,6 +528,7 @@ NS_ASSUME_NONNULL_END
     [self.compositionRoot.settingsMigration execute];
     self.helpMenuActionRedirect.target = self.compositionRoot.helpMenuActionTarget;
     [self configureUserAgent];
+    [self addOperatorPanelMenuItemIfNeeded];
     self.accountsMenuItems = [[AccountsMenuItems alloc] initWithMenu:self.windowMenu controllers:self.accountControllers];
     NSUserNotificationCenter.defaultUserNotificationCenter.delegate = self;
     NSApp.servicesProvider = self;
@@ -554,6 +569,23 @@ NS_ASSUME_NONNULL_END
     [self.compositionRoot.orphanLogFileRemoval performSelector:@selector(execute) withObject:nil afterDelay:0];
     [self showAccountPreferencesIfNeeded];
     [self setFinishedLaunching:YES];
+}
+
+- (void)addOperatorPanelMenuItemIfNeeded {
+    for (NSMenuItem *item in self.windowMenu.itemArray) {
+        if (item.action == @selector(showOperatorPanel:)) {
+            return;
+        }
+    }
+
+    [self.windowMenu addItem:[NSMenuItem separatorItem]];
+
+    NSMenuItem *item = [[NSMenuItem alloc] initWithTitle:NSLocalizedString(@"Operator Panel", @"Window menu operator panel item.")
+                                                  action:@selector(showOperatorPanel:)
+                                           keyEquivalent:@"0"];
+    item.keyEquivalentModifierMask = NSEventModifierFlagCommand | NSEventModifierFlagOption;
+    item.target = self;
+    [self.windowMenu addItem:item];
 }
 
 - (void)configureUserAgent {
