@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<stationKeys>
+    <station>
+        <name>Tür unten</name>
+        <number>**1</number>
+    </station>
+    <station>
+        <name>Tür oben</name>
+        <number>**2</number>
+    </station>
+    <station>
+        <name>Empfang</name>
+        <number>100</number>
+    </station>
+    <station>
+        <name>Marcel Handy</name>
+        <number>01719588019</number>
+    </station>
+</stationKeys>

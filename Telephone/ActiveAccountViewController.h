@@ -34,6 +34,7 @@ extern NSString * const kPhoneLabel;
 
 // Call destination token field outlet.
 @property(nonatomic, weak) IBOutlet NSTokenField *callDestinationField;
+@property(nonatomic, weak) IBOutlet NSButton *dialPadButton;
 
 // Index of a URI in a call destination token.
 @property(nonatomic, assign) NSUInteger callDestinationURIIndex;
@@ -51,6 +52,7 @@ extern NSString * const kPhoneLabel;
 
 // Makes a call.
 - (IBAction)makeCall:(id)sender;
+- (IBAction)toggleDialPad:(id)sender;
 
 // Changes the active SIP URI index in the call destination token.
 - (IBAction)changeCallDestinationURIIndex:(id)sender;

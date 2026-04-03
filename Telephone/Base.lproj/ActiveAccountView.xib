@@ -9,13 +9,14 @@
         <customObject id="-2" userLabel="File's Owner" customClass="ActiveAccountViewController">
             <connections>
                 <outlet property="callDestinationField" destination="5" id="7"/>
+                <outlet property="dialPadButton" destination="11" id="12"/>
                 <outlet property="view" destination="1" id="8"/>
             </connections>
         </customObject>
         <customObject id="-1" userLabel="First Responder" customClass="FirstResponder"/>
         <customObject id="-3" userLabel="Application" customClass="NSObject"/>
         <customView translatesAutoresizingMaskIntoConstraints="NO" id="1" userLabel="Active Account View">
-            <rect key="frame" x="0.0" y="0.0" width="260" height="62"/>
+            <rect key="frame" x="0.0" y="0.0" width="296" height="62"/>
             <subviews>
                 <tokenField verticalHuggingPriority="750" allowsCharacterPickerTouchBarItem="YES" translatesAutoresizingMaskIntoConstraints="NO" id="5">
                     <rect key="frame" x="20" y="19" width="220" height="24"/>
@@ -32,11 +33,23 @@
                         <outlet property="delegate" destination="-2" id="9"/>
                     </connections>
                 </tokenField>
+                <button translatesAutoresizingMaskIntoConstraints="NO" id="11">
+                    <rect key="frame" x="248" y="15" width="28" height="32"/>
+                    <buttonCell key="cell" type="push" bezelStyle="texturedRounded" imagePosition="overlaps" alignment="center" borderStyle="border" imageScaling="proportionallyDown" inset="2" id="13">
+                        <behavior key="behavior" pushIn="YES" lightByBackground="YES" lightByGray="YES"/>
+                        <font key="font" metaFont="system"/>
+                    </buttonCell>
+                    <connections>
+                        <action selector="toggleDialPad:" target="-2" id="14"/>
+                    </connections>
+                </button>
             </subviews>
             <constraints>
                 <constraint firstItem="5" firstAttribute="centerY" secondItem="1" secondAttribute="centerY" id="EwD-re-VoC"/>
+                <constraint firstItem="11" firstAttribute="centerY" secondItem="5" secondAttribute="centerY" id="JYg-RN-wvr"/>
                 <constraint firstItem="5" firstAttribute="leading" secondItem="1" secondAttribute="leading" constant="20" symbolic="YES" id="WE4-eE-O8G"/>
-                <constraint firstAttribute="trailing" secondItem="5" secondAttribute="trailing" constant="20" symbolic="YES" id="gcr-z6-FxP"/>
+                <constraint firstItem="11" firstAttribute="leading" secondItem="5" secondAttribute="trailing" constant="8" id="aW0-EU-RaP"/>
+                <constraint firstAttribute="trailing" secondItem="11" secondAttribute="trailing" constant="20" symbolic="YES" id="gcr-z6-FxP"/>
             </constraints>
             <point key="canvasLocation" x="129" y="154"/>
         </customView>

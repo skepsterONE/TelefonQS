@@ -278,3 +278,18 @@
 
 /* Operator panel window title. */
 "Operator Panel" = "Operator Panel";
+
+/* Call history drawer title and toggle. */
+"Call History" = "Call History";
+"Import XML…" = "Import XML…";
+"Import" = "Import";
+"Choose an XML file for the station keys." = "Choose an XML file for the station keys.";
+"XML import failed" = "XML import failed";
+"The XML file could not be imported." = "The XML file could not be imported.";
+"No station keys were found in the XML file." = "No station keys were found in the XML file.";
+
+/* Hide drawer button. */
+"Hide" = "Hide";
+
+/* Hide call history drawer toggle. */
+"Hide History" = "Hide History";

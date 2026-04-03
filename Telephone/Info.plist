@@ -64,13 +64,13 @@
 		<dict>
 			<key>NSMenuItem</key>
 			<dict>
-				<key>default</key>
-				<string>Telephone: Call</string>
+			<key>default</key>
+			<string>TelefonQS: Call</string>
 			</dict>
 			<key>NSMessage</key>
 			<string>makeCallFromTextService</string>
 			<key>NSPortName</key>
-			<string>Telephone</string>
+			<string>TelefonQS</string>
 			<key>NSSendTypes</key>
 			<array>
 				<string>NSStringPboardType</string>

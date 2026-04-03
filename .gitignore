@@ -5,6 +5,14 @@
 *.xcodeproj/xcuserdata/
 build/
 .idea/
+.DerivedData/
+dist/
+!Examples/
+!Examples/**
+ThirdParty/*.tar.gz
+ThirdParty/libressl-*/
+ThirdParty/opus-*/
+ThirdParty/pjproject-*/
 
 ThirdParty/Opus
 ThirdParty/LibreSSL/*

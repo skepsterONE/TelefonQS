@@ -20,6 +20,17 @@
 
 #import "AccountController.h"
 
+static NSString * const ActiveAccountTransferStationsKey = @"OperatorPanelStations";
+static NSString * const ActiveAccountTransferStationNameKey = @"name";
+static NSString * const ActiveAccountTransferStationDestinationKey = @"destination";
+
+@interface ActiveAccountTransferViewController ()
+
+@property(nonatomic, copy) NSArray<NSDictionary<NSString *, NSString *> *> *stationKeys;
+
+- (id)tokenField:(NSTokenField *)tokenField representedObjectForEditingString:(NSString *)editingString;
+
+@end
 
 @implementation ActiveAccountTransferViewController
 
@@ -29,6 +40,12 @@
         _accountController = accountController;
     }
     return self;
+}
+
+- (void)awakeFromNib {
+    [super awakeFromNib];
+    [self loadStationKeys];
+    [self configureStationKeyPopupButton];
 }
 
 - (IBAction)makeCallToTransferDestination:(id)sender {
@@ -49,6 +66,65 @@
 
 - (IBAction)makeCall:(id)sender {
     return;
+}
+
+- (IBAction)selectStationKey:(id)sender {
+    NSPopUpButton *popupButton = (NSPopUpButton *)sender;
+    NSInteger selectedIndex = popupButton.indexOfSelectedItem - 1;
+    if (selectedIndex < 0 || selectedIndex >= (NSInteger)self.stationKeys.count) {
+        return;
+    }
+
+    NSDictionary<NSString *, NSString *> *station = self.stationKeys[(NSUInteger)selectedIndex];
+    NSString *destination = station[ActiveAccountTransferStationDestinationKey];
+    if (destination.length == 0) {
+        return;
+    }
+
+    NSString *name = station[ActiveAccountTransferStationNameKey];
+    NSString *editingString = name.length > 0 ? [NSString stringWithFormat:@"%@ <%@>", name, destination] : destination;
+    id representedObject = [self tokenField:self.callDestinationField representedObjectForEditingString:editingString];
+    if (representedObject != nil) {
+        self.callDestinationField.objectValue = @[representedObject];
+        self.callDestinationField.tokenStyle = NSTokenStyleRounded;
+    } else {
+        self.callDestinationField.stringValue = editingString;
+    }
+
+    [popupButton selectItemAtIndex:0];
+}
+
+- (void)loadStationKeys {
+    NSArray *stored = [NSUserDefaults.standardUserDefaults arrayForKey:ActiveAccountTransferStationsKey];
+    NSMutableArray<NSDictionary<NSString *, NSString *> *> *result = [[NSMutableArray alloc] init];
+    for (id entry in stored) {
+        if (![entry isKindOfClass:[NSDictionary class]]) {
+            continue;
+        }
+        NSString *name = [entry[ActiveAccountTransferStationNameKey] isKindOfClass:[NSString class]] ? entry[ActiveAccountTransferStationNameKey] : @"";
+        NSString *destination = [entry[ActiveAccountTransferStationDestinationKey] isKindOfClass:[NSString class]] ? entry[ActiveAccountTransferStationDestinationKey] : @"";
+        if (destination.length == 0) {
+            continue;
+        }
+        [result addObject:@{
+            ActiveAccountTransferStationNameKey: name,
+            ActiveAccountTransferStationDestinationKey: destination
+        }];
+    }
+    self.stationKeys = [result copy];
+}
+
+- (void)configureStationKeyPopupButton {
+    [self.stationKeyPopupButton removeAllItems];
+    [self.stationKeyPopupButton addItemWithTitle:NSLocalizedString(@"Station Key", @"Transfer dialog station key popup placeholder.")];
+    for (NSDictionary<NSString *, NSString *> *station in self.stationKeys) {
+        NSString *name = station[ActiveAccountTransferStationNameKey];
+        NSString *destination = station[ActiveAccountTransferStationDestinationKey];
+        NSString *title = name.length > 0 ? [NSString stringWithFormat:@"%@ (%@)", name, destination] : destination;
+        [self.stationKeyPopupButton addItemWithTitle:title];
+    }
+    self.stationKeyPopupButton.enabled = self.stationKeys.count > 0;
+    [self.stationKeyPopupButton selectItemAtIndex:0];
 }
 
 @end

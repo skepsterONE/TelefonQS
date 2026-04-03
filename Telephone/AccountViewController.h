@@ -39,6 +39,7 @@ NS_ASSUME_NONNULL_BEGIN
 - (void)showInactiveStateAnimated:(BOOL)animated;
 
 - (void)makeCallToDestination:(NSString *)destination;
+- (IBAction)toggleCallHistory:(nullable id)sender;
 
 @end
 

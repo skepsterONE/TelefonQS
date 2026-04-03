@@ -35,6 +35,191 @@
 NSString * const kURI = @"URI";
 NSString * const kPhoneLabel = @"PhoneLabel";
 
+@interface DialPadButton : NSButton
+@end
+
+@implementation DialPadButton
+
+{
+    NSTrackingArea *_trackingArea;
+    BOOL _hovering;
+    BOOL _pressed;
+}
+
+- (instancetype)initWithFrame:(NSRect)frameRect {
+    if ((self = [super initWithFrame:frameRect])) {
+        self.bordered = NO;
+        self.wantsLayer = YES;
+        self.layer.cornerRadius = 18.0;
+        self.layer.masksToBounds = NO;
+    }
+    return self;
+}
+
+- (void)updateTrackingAreas {
+    [super updateTrackingAreas];
+    if (_trackingArea != nil) {
+        [self removeTrackingArea:_trackingArea];
+    }
+    _trackingArea = [[NSTrackingArea alloc] initWithRect:self.bounds
+                                                 options:(NSTrackingMouseEnteredAndExited |
+                                                          NSTrackingActiveInActiveApp |
+                                                          NSTrackingInVisibleRect)
+                                                   owner:self
+                                                userInfo:nil];
+    [self addTrackingArea:_trackingArea];
+}
+
+- (void)mouseEntered:(NSEvent *)event {
+    _hovering = YES;
+    [self.layer setNeedsDisplay];
+    [self updateLayer];
+}
+
+- (void)mouseExited:(NSEvent *)event {
+    _hovering = NO;
+    _pressed = NO;
+    [self.layer setNeedsDisplay];
+    [self updateLayer];
+}
+
+- (void)mouseDown:(NSEvent *)event {
+    _pressed = YES;
+    [self updateLayer];
+    [super mouseDown:event];
+    _pressed = NO;
+    [self updateLayer];
+}
+
+- (void)updateLayer {
+    NSColor *fillColor = nil;
+    NSColor *borderColor = nil;
+
+    if (_pressed) {
+        fillColor = [NSColor colorWithSRGBRed:0.92 green:0.92 blue:0.95 alpha:0.98];
+        borderColor = [NSColor colorWithSRGBRed:0.18 green:0.18 blue:0.24 alpha:0.45];
+        self.contentTintColor = [NSColor colorWithSRGBRed:0.20 green:0.20 blue:0.25 alpha:1.0];
+    } else if (_hovering) {
+        fillColor = [NSColor colorWithSRGBRed:0.40 green:0.40 blue:0.46 alpha:0.96];
+        borderColor = [NSColor colorWithWhite:1.0 alpha:0.18];
+        self.contentTintColor = [NSColor colorWithWhite:0.99 alpha:0.98];
+    } else {
+        fillColor = [NSColor colorWithSRGBRed:0.31 green:0.31 blue:0.35 alpha:0.92];
+        borderColor = [NSColor colorWithWhite:1.0 alpha:0.1];
+        self.contentTintColor = [NSColor colorWithWhite:0.97 alpha:0.96];
+    }
+
+    self.layer.backgroundColor = fillColor.CGColor;
+    self.layer.borderColor = borderColor.CGColor;
+    self.layer.borderWidth = 1.0;
+    self.layer.shadowColor = [NSColor colorWithWhite:0.0 alpha:0.20].CGColor;
+    self.layer.shadowOpacity = 1.0;
+    self.layer.shadowOffset = CGSizeMake(0.0, _pressed ? -1.0 : -2.0);
+    self.layer.shadowRadius = _hovering ? 8.0 : 6.0;
+}
+
+@end
+
+@interface ActiveAccountDialPadViewController : NSViewController
+
+@property(nonatomic, copy) void (^digitHandler)(NSString *digit);
+@property(nonatomic, copy) dispatch_block_t callHandler;
+
+@end
+
+@implementation ActiveAccountDialPadViewController
+
+- (void)loadView {
+    NSVisualEffectView *rootView = [[NSVisualEffectView alloc] initWithFrame:NSMakeRect(0.0, 0.0, 152.0, 232.0)];
+    rootView.material = NSVisualEffectMaterialHUDWindow;
+    rootView.state = NSVisualEffectStateActive;
+    rootView.blendingMode = NSVisualEffectBlendingModeWithinWindow;
+    rootView.wantsLayer = YES;
+    rootView.layer.cornerRadius = 16.0;
+    rootView.layer.masksToBounds = YES;
+    self.view = rootView;
+
+    NSArray<NSArray<NSString *> *> *rows = @[
+        @[@"1", @"2", @"3"],
+        @[@"4", @"5", @"6"],
+        @[@"7", @"8", @"9"],
+        @[@"*", @"0", @"#"]
+    ];
+
+    CGFloat buttonSize = 34.0;
+    CGFloat horizontalSpacing = 11.0;
+    CGFloat verticalSpacing = 8.0;
+    CGFloat originX = 16.0;
+    CGFloat digitsBlockHeight = (buttonSize * 4.0) + (verticalSpacing * 3.0);
+    CGFloat contentHeight = digitsBlockHeight + verticalSpacing + buttonSize;
+    CGFloat verticalInset = floor((NSHeight(rootView.bounds) - contentHeight) / 2.0);
+    CGFloat callButtonY = verticalInset;
+    CGFloat originY = NSHeight(rootView.bounds) - verticalInset - buttonSize;
+
+    for (NSUInteger rowIndex = 0; rowIndex < rows.count; ++rowIndex) {
+        NSArray<NSString *> *row = rows[rowIndex];
+        for (NSUInteger columnIndex = 0; columnIndex < row.count; ++columnIndex) {
+            NSString *title = row[columnIndex];
+            NSButton *button = [self dialPadButtonWithTitle:title];
+            button.frame = NSMakeRect(originX + (buttonSize + horizontalSpacing) * columnIndex,
+                                      originY - (buttonSize + verticalSpacing) * rowIndex,
+                                      buttonSize,
+                                      buttonSize);
+            [rootView addSubview:button];
+        }
+    }
+
+    NSButton *callButton = [[NSButton alloc] initWithFrame:NSMakeRect(59.0, callButtonY, 34.0, 34.0)];
+    callButton.bordered = NO;
+    callButton.wantsLayer = YES;
+    callButton.layer.cornerRadius = 17.0;
+    callButton.layer.backgroundColor = [NSColor colorWithSRGBRed:0.28 green:0.74 blue:0.36 alpha:1.0].CGColor;
+    callButton.layer.borderColor = [NSColor colorWithWhite:1.0 alpha:0.16].CGColor;
+    callButton.layer.borderWidth = 1.0;
+    callButton.target = self;
+    callButton.action = @selector(callPressed:);
+    NSImage *phoneImage = [NSImage imageWithSystemSymbolName:@"phone.fill" accessibilityDescription:NSLocalizedString(@"Call", @"Dial pad call button.")];
+    phoneImage = [phoneImage imageWithSymbolConfiguration:[NSImageSymbolConfiguration configurationWithPointSize:15.0 weight:NSFontWeightSemibold]];
+    callButton.image = phoneImage;
+    callButton.contentTintColor = [NSColor whiteColor];
+    [rootView addSubview:callButton];
+}
+
+- (NSButton *)dialPadButtonWithTitle:(NSString *)title {
+    DialPadButton *button = [[DialPadButton alloc] initWithFrame:NSZeroRect];
+    button.title = title;
+    button.font = [NSFont systemFontOfSize:18.0 weight:NSFontWeightSemibold];
+    button.contentTintColor = [NSColor colorWithWhite:0.97 alpha:0.96];
+    button.target = self;
+    button.action = @selector(digitPressed:);
+    return button;
+}
+
+- (void)digitPressed:(NSButton *)sender {
+    if (self.digitHandler != nil) {
+        self.digitHandler(sender.title);
+    }
+}
+
+- (void)callPressed:(id)sender {
+    if (self.callHandler != nil) {
+        self.callHandler();
+    }
+}
+
+@end
+
+@interface ActiveAccountViewController ()
+
+@property(nonatomic) NSPopover *dialPadPopover;
+
+- (id)tokenField:(NSTokenField *)tokenField representedObjectForEditingString:(NSString *)editingString;
+- (NSString *)tokenField:(NSTokenField *)tokenField editingStringForRepresentedObject:(id)representedObject;
+- (NSString *)currentDialString;
+- (void)applyDialString:(NSString *)dialString;
+
+@end
+
 @implementation ActiveAccountViewController
 
 - (AKSIPURI *)callDestinationURI {
@@ -79,6 +264,16 @@ NSString * const kPhoneLabel = @"PhoneLabel";
     [[self callDestinationField] setTokenizingCharacterSet:[NSCharacterSet characterSetWithCharactersInString:@""]];
     
     [[self callDestinationField] setCompletionDelay:0.4];
+
+    if (self.dialPadButton.image == nil) {
+        NSImage *image = [NSImage imageWithSystemSymbolName:@"circle.grid.3x3.fill"
+                                      accessibilityDescription:NSLocalizedString(@"Dial Pad", @"Dial pad button.")];
+        image = [image imageWithSymbolConfiguration:[NSImageSymbolConfiguration configurationWithPointSize:13.0 weight:NSFontWeightSemibold]];
+        self.dialPadButton.image = image;
+        self.dialPadButton.contentTintColor = [NSColor colorWithSRGBRed:0.76 green:0.44 blue:0.88 alpha:1.0];
+        self.dialPadButton.title = @"";
+        self.dialPadButton.bezelStyle = NSBezelStyleTexturedRounded;
+    }
 }
 
 - (IBAction)makeCall:(id)sender {
@@ -93,6 +288,39 @@ NSString * const kPhoneLabel = @"PhoneLabel";
     if (uri != nil) {
         [[self accountController] makeCallToURI:uri phoneLabel:phoneLabel];
     }
+}
+
+- (IBAction)toggleDialPad:(id)sender {
+    if (self.dialPadPopover.shown) {
+        [self.dialPadPopover close];
+        return;
+    }
+
+    ActiveAccountDialPadViewController *dialPadViewController = [[ActiveAccountDialPadViewController alloc] initWithNibName:nil bundle:nil];
+    __weak typeof(self) weakSelf = self;
+    dialPadViewController.digitHandler = ^(NSString *digit) {
+        __strong typeof(weakSelf) strongSelf = weakSelf;
+        if (strongSelf == nil) {
+            return;
+        }
+        NSString *updated = [[strongSelf currentDialString] stringByAppendingString:digit];
+        [strongSelf applyDialString:updated];
+    };
+    dialPadViewController.callHandler = ^{
+        __strong typeof(weakSelf) strongSelf = weakSelf;
+        if (strongSelf == nil) {
+            return;
+        }
+        [strongSelf makeCall:strongSelf];
+        [strongSelf.dialPadPopover close];
+    };
+
+    NSPopover *popover = [[NSPopover alloc] init];
+    popover.behavior = NSPopoverBehaviorTransient;
+    popover.animates = YES;
+    popover.contentViewController = dialPadViewController;
+    self.dialPadPopover = popover;
+    [popover showRelativeToRect:self.dialPadButton.bounds ofView:self.dialPadButton preferredEdge:NSRectEdgeMaxY];
 }
 
 - (BOOL)canMakeCall {
@@ -122,6 +350,31 @@ NSString * const kPhoneLabel = @"PhoneLabel";
 
 - (void)updateNextKeyView:(NSView *)view {
     self.keyView.nextKeyView = view;
+}
+
+- (NSString *)currentDialString {
+    NSString *stringValue = self.callDestinationField.stringValue ?: @"";
+    if (stringValue.length > 0) {
+        return stringValue;
+    }
+    if ([self canMakeCall]) {
+        NSArray *objectValue = [self.callDestinationField.objectValue isKindOfClass:[NSArray class]] ? self.callDestinationField.objectValue : nil;
+        id representedObject = objectValue.count > 0 ? objectValue[0] : nil;
+        return representedObject != nil ? ([self tokenField:self.callDestinationField editingStringForRepresentedObject:representedObject] ?: @"") : @"";
+    }
+    return @"";
+}
+
+- (void)applyDialString:(NSString *)dialString {
+    id representedObject = [self tokenField:self.callDestinationField representedObjectForEditingString:dialString];
+    if (representedObject != nil) {
+        self.callDestinationField.objectValue = @[representedObject];
+        self.callDestinationField.tokenStyle = NSTokenStyleRounded;
+    } else {
+        self.callDestinationField.objectValue = @[];
+        self.callDestinationField.stringValue = dialString ?: @"";
+        self.callDestinationField.tokenStyle = NSTokenStyleNone;
+    }
 }
 
 

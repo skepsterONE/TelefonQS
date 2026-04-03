@@ -12,10 +12,144 @@
 #import "Telephone-Swift.h"
 
 static NSInteger const kOperatorPanelStationCount = 16;
+static CGFloat const kOperatorPanelColumnWidth = 183.0;
+static CGFloat const kOperatorPanelButtonHorizontalPadding = 18.0;
+static CGFloat const kOperatorPanelButtonIconSize = 22.0;
+static CGFloat const kOperatorPanelButtonIconGap = 14.0;
 
 static NSString * const OperatorPanelStationsKey = @"OperatorPanelStations";
 static NSString * const OperatorPanelStationNameKey = @"name";
 static NSString * const OperatorPanelStationDestinationKey = @"destination";
+
+@interface OperatorPanelGlassButton : NSButton
+
+@property(nonatomic, copy) NSString *symbolName;
+@property(nonatomic) NSColor *symbolColor;
+
+- (void)applyOperatorPanelStyle;
+
+@end
+
+@implementation OperatorPanelGlassButton {
+    NSTrackingArea *_trackingArea;
+    BOOL _hovering;
+}
+
+- (instancetype)initWithFrame:(NSRect)frameRect {
+    if ((self = [super initWithFrame:frameRect])) {
+        self.bordered = NO;
+        self.wantsLayer = YES;
+        self.layer.cornerRadius = 18.0;
+        self.layer.masksToBounds = NO;
+        self.symbolColor = [NSColor colorWithWhite:0.95 alpha:0.95];
+    }
+    return self;
+}
+
+- (void)updateTrackingAreas {
+    [super updateTrackingAreas];
+    if (_trackingArea != nil) {
+        [self removeTrackingArea:_trackingArea];
+    }
+    _trackingArea = [[NSTrackingArea alloc] initWithRect:self.bounds
+                                                 options:(NSTrackingMouseEnteredAndExited |
+                                                          NSTrackingActiveInActiveApp |
+                                                          NSTrackingInVisibleRect)
+                                                   owner:self
+                                                userInfo:nil];
+    [self addTrackingArea:_trackingArea];
+}
+
+- (void)mouseEntered:(NSEvent *)event {
+    _hovering = YES;
+    [self applyOperatorPanelStyle];
+}
+
+- (void)mouseExited:(NSEvent *)event {
+    _hovering = NO;
+    [self applyOperatorPanelStyle];
+}
+
+- (void)setEnabled:(BOOL)enabled {
+    [super setEnabled:enabled];
+    [self applyOperatorPanelStyle];
+}
+
+- (void)setTitle:(NSString *)title {
+    [super setTitle:title];
+    [self applyOperatorPanelStyle];
+}
+
+- (void)setSymbolName:(NSString *)symbolName {
+    _symbolName = [symbolName copy];
+    [self applyOperatorPanelStyle];
+}
+
+- (void)setSymbolColor:(NSColor *)symbolColor {
+    _symbolColor = symbolColor;
+    [self applyOperatorPanelStyle];
+}
+
+- (void)applyOperatorPanelStyle {
+    NSColor *fillColor = self.enabled
+        ? (_hovering ? [NSColor colorWithSRGBRed:0.26 green:0.29 blue:0.38 alpha:0.94] : [NSColor colorWithSRGBRed:0.19 green:0.22 blue:0.30 alpha:0.90])
+        : [NSColor colorWithSRGBRed:0.15 green:0.17 blue:0.23 alpha:0.55];
+    NSColor *borderColor = self.enabled
+        ? (_hovering ? [NSColor colorWithWhite:1.0 alpha:0.18] : [NSColor colorWithWhite:1.0 alpha:0.10])
+        : [NSColor colorWithWhite:1.0 alpha:0.05];
+
+    self.layer.backgroundColor = fillColor.CGColor;
+    self.layer.borderColor = borderColor.CGColor;
+    self.layer.borderWidth = 1.0;
+    self.layer.shadowColor = [NSColor colorWithWhite:0.0 alpha:0.32].CGColor;
+    self.layer.shadowOpacity = 1.0;
+    self.layer.shadowOffset = CGSizeMake(0.0, _hovering ? -1.0 : -2.0);
+    self.layer.shadowRadius = _hovering ? 12.0 : 18.0;
+
+    [self setNeedsDisplay:YES];
+}
+
+- (void)drawRect:(NSRect)dirtyRect {
+    [[NSColor clearColor] setFill];
+    NSRectFill(dirtyRect);
+
+    NSDictionary *attributes = @{
+        NSForegroundColorAttributeName: self.enabled ? [NSColor colorWithWhite:0.985 alpha:0.98] : [NSColor colorWithWhite:0.82 alpha:0.48],
+        NSFontAttributeName: [NSFont systemFontOfSize:18.0 weight:NSFontWeightSemibold]
+    };
+    NSSize titleSize = [self.title sizeWithAttributes:attributes];
+
+    NSImage *symbolImage = nil;
+    if (self.symbolName.length > 0) {
+        NSImage *image = [NSImage imageWithSystemSymbolName:self.symbolName accessibilityDescription:self.title];
+        NSColor *symbolColor = self.enabled ? self.symbolColor : [self.symbolColor colorWithAlphaComponent:0.45];
+        NSImageSymbolConfiguration *configuration = [NSImageSymbolConfiguration configurationWithPointSize:22.0
+                                                                                                     weight:NSFontWeightSemibold];
+        if (@available(macOS 12.0, *)) {
+            configuration = [configuration configurationByApplyingConfiguration:[NSImageSymbolConfiguration configurationWithHierarchicalColor:symbolColor]];
+        }
+        symbolImage = [image imageWithSymbolConfiguration:configuration];
+    }
+
+    CGFloat iconWidth = symbolImage != nil ? kOperatorPanelButtonIconSize : 0.0;
+    CGFloat spacing = symbolImage != nil ? kOperatorPanelButtonIconGap : 0.0;
+    CGFloat startX = kOperatorPanelButtonHorizontalPadding;
+    CGFloat centerY = floor(NSMidY(self.bounds));
+
+    if (symbolImage != nil) {
+        NSRect imageRect = NSMakeRect(startX,
+                                      centerY - (kOperatorPanelButtonIconSize / 2.0),
+                                      kOperatorPanelButtonIconSize,
+                                      kOperatorPanelButtonIconSize);
+        [symbolImage drawInRect:imageRect];
+    }
+
+    NSPoint titlePoint = NSMakePoint(startX + iconWidth + spacing,
+                                     centerY - (titleSize.height / 2.0) + 1.0);
+    [self.title drawAtPoint:titlePoint withAttributes:attributes];
+}
+
+@end
 
 @interface OperatorPanelController ()
 
@@ -94,12 +228,21 @@ static NSString * const OperatorPanelStationDestinationKey = @"destination";
     return label;
 }
 
-- (NSButton *)actionButtonWithTitle:(NSString *)title action:(SEL)action {
-    NSButton *button = [NSButton buttonWithTitle:title target:self action:action];
-    button.bezelStyle = NSBezelStyleRounded;
+- (NSButton *)actionButtonWithTitle:(NSString *)title
+                             action:(SEL)action
+                         symbolName:(NSString *)symbolName
+                        symbolColor:(NSColor *)symbolColor {
+    OperatorPanelGlassButton *button = [[OperatorPanelGlassButton alloc] initWithFrame:NSZeroRect];
+    [button setButtonType:NSButtonTypeMomentaryPushIn];
+    button.title = title;
+    button.target = self;
+    button.action = action;
+    button.symbolName = symbolName;
+    button.symbolColor = symbolColor;
     button.translatesAutoresizingMaskIntoConstraints = NO;
-    [button.heightAnchor constraintEqualToConstant:34.0].active = YES;
-    [button.widthAnchor constraintGreaterThanOrEqualToConstant:150.0].active = YES;
+    [button.heightAnchor constraintEqualToConstant:62.0].active = YES;
+    [button.widthAnchor constraintEqualToConstant:kOperatorPanelColumnWidth].active = YES;
+    [button applyOperatorPanelStyle];
     return button;
 }
 
@@ -110,7 +253,7 @@ static NSString * const OperatorPanelStationDestinationKey = @"destination";
     button.buttonType = NSButtonTypeMomentaryPushIn;
     button.translatesAutoresizingMaskIntoConstraints = NO;
     [button.heightAnchor constraintEqualToConstant:64.0].active = YES;
-    [button.widthAnchor constraintGreaterThanOrEqualToConstant:180.0].active = YES;
+    [button.widthAnchor constraintEqualToConstant:kOperatorPanelColumnWidth].active = YES;
     if ([button.cell isKindOfClass:[NSButtonCell class]]) {
         NSButtonCell *cell = (NSButtonCell *)button.cell;
         cell.lineBreakMode = NSLineBreakByWordWrapping;
@@ -174,17 +317,27 @@ static NSString * const OperatorPanelStationDestinationKey = @"destination";
 }
 
 - (void)buildInterface {
+    NSVisualEffectView *backgroundView = [[NSVisualEffectView alloc] initWithFrame:self.window.contentView.bounds];
+    backgroundView.translatesAutoresizingMaskIntoConstraints = NO;
+    backgroundView.material = NSVisualEffectMaterialUnderWindowBackground;
+    backgroundView.blendingMode = NSVisualEffectBlendingModeWithinWindow;
+    backgroundView.state = NSVisualEffectStateActive;
+    backgroundView.wantsLayer = YES;
+    backgroundView.layer.backgroundColor = [NSColor colorWithSRGBRed:0.06 green:0.07 blue:0.12 alpha:0.94].CGColor;
+    self.window.contentView = backgroundView;
+
     NSStackView *contentStack = [[NSStackView alloc] init];
     contentStack.orientation = NSUserInterfaceLayoutOrientationVertical;
-    contentStack.spacing = 14.0;
-    contentStack.edgeInsets = NSEdgeInsetsMake(18.0, 18.0, 18.0, 18.0);
+    contentStack.spacing = 18.0;
+    contentStack.edgeInsets = NSEdgeInsetsMake(22.0, 22.0, 22.0, 22.0);
     contentStack.translatesAutoresizingMaskIntoConstraints = NO;
 
     self.callTitleField = [self labelWithFont:[NSFont boldSystemFontOfSize:18.0]];
     self.callStatusField = [self labelWithFont:[NSFont systemFontOfSize:13.0]];
-    self.callStatusField.textColor = NSColor.secondaryLabelColor;
+    self.callTitleField.textColor = [NSColor colorWithWhite:0.98 alpha:0.96];
+    self.callStatusField.textColor = [NSColor colorWithWhite:0.88 alpha:0.72];
     self.hintField = [self wrappingLabel];
-    self.hintField.textColor = NSColor.secondaryLabelColor;
+    self.hintField.textColor = [NSColor colorWithWhite:0.88 alpha:0.68];
 
     NSStackView *headerStack = [[NSStackView alloc] init];
     headerStack.orientation = NSUserInterfaceLayoutOrientationVertical;
@@ -193,17 +346,29 @@ static NSString * const OperatorPanelStationDestinationKey = @"destination";
     [headerStack addArrangedSubview:self.callStatusField];
 
     NSButton *muteButton = [self actionButtonWithTitle:NSLocalizedString(@"Mute", @"Operator panel mute button.")
-                                                action:@selector(toggleMute:)];
+                                                action:@selector(toggleMute:)
+                                            symbolName:@"mic.slash.fill"
+                                           symbolColor:[NSColor colorWithWhite:0.95 alpha:0.95]];
     NSButton *holdButton = [self actionButtonWithTitle:NSLocalizedString(@"Hold", @"Operator panel hold button.")
-                                                action:@selector(toggleHold:)];
+                                                action:@selector(toggleHold:)
+                                            symbolName:@"pause.fill"
+                                           symbolColor:[NSColor colorWithWhite:0.95 alpha:0.95]];
     NSButton *transferButton = [self actionButtonWithTitle:NSLocalizedString(@"Transfer", @"Operator panel transfer button.")
-                                                    action:@selector(showTransfer:)];
+                                                    action:@selector(showTransfer:)
+                                                symbolName:@"arrow.left.arrow.right"
+                                               symbolColor:[NSColor colorWithWhite:0.95 alpha:0.95]];
     NSButton *recallButton = [self actionButtonWithTitle:NSLocalizedString(@"Call Back", @"Operator panel call back button.")
-                                                  action:@selector(recall:)];
+                                                  action:@selector(recall:)
+                                              symbolName:@"phone.arrow.up.right.fill"
+                                             symbolColor:[NSColor colorWithWhite:0.95 alpha:0.95]];
     NSButton *answerButton = [self actionButtonWithTitle:NSLocalizedString(@"Answer", @"Call answer button.")
-                                                  action:@selector(answer:)];
+                                                  action:@selector(answer:)
+                                              symbolName:@"phone.badge.plus.fill"
+                                             symbolColor:[NSColor colorWithSRGBRed:0.49 green:0.78 blue:0.58 alpha:1.0]];
     NSButton *hangUpButton = [self actionButtonWithTitle:NSLocalizedString(@"End Call", @"End Call. Call menu item.")
-                                                  action:@selector(hangUp:)];
+                                                  action:@selector(hangUp:)
+                                              symbolName:@"phone.down.fill"
+                                             symbolColor:[NSColor colorWithSRGBRed:0.86 green:0.42 blue:0.40 alpha:1.0]];
 
     NSGridView *actionsGrid = [NSGridView gridViewWithViews:@[
         @[
@@ -381,6 +546,14 @@ static NSString * const OperatorPanelStationDestinationKey = @"destination";
     [self.holdButton setTitle:(controller.call.isOnLocalHold
                                ? NSLocalizedString(@"Resume", @"Resume. Call menu item.")
                                : NSLocalizedString(@"Hold", @"Hold. Call menu item."))];
+    ((OperatorPanelGlassButton *)self.muteButton).symbolName = controller.call.isMicrophoneMuted ? @"mic.fill" : @"mic.slash.fill";
+    ((OperatorPanelGlassButton *)self.holdButton).symbolName = controller.call.isOnLocalHold ? @"play.fill" : @"pause.fill";
+    [(OperatorPanelGlassButton *)self.muteButton applyOperatorPanelStyle];
+    [(OperatorPanelGlassButton *)self.holdButton applyOperatorPanelStyle];
+    [(OperatorPanelGlassButton *)self.transferButton applyOperatorPanelStyle];
+    [(OperatorPanelGlassButton *)self.recallButton applyOperatorPanelStyle];
+    [(OperatorPanelGlassButton *)self.answerButton applyOperatorPanelStyle];
+    [(OperatorPanelGlassButton *)self.hangUpButton applyOperatorPanelStyle];
 
     self.muteButton.enabled = canMute;
     self.holdButton.enabled = canHoldOrTransfer;
@@ -528,13 +701,15 @@ static NSString * const OperatorPanelStationDestinationKey = @"destination";
         NSDictionary<NSString *, NSString *> *slot = self.stationKeys[index];
 
         NSTextField *indexLabel = [NSTextField labelWithString:[NSString stringWithFormat:@"%ld", index + 1]];
-        NSTextField *nameField = [[NSTextField alloc] initWithFrame:NSMakeRect(0.0, 0.0, 170.0, 24.0)];
+        NSTextField *nameField = [[NSTextField alloc] initWithFrame:NSMakeRect(0.0, 0.0, 320.0, 24.0)];
         nameField.placeholderString = NSLocalizedString(@"Name", @"Operator panel station name placeholder.");
         nameField.stringValue = slot[OperatorPanelStationNameKey] ?: @"";
+        [nameField.widthAnchor constraintGreaterThanOrEqualToConstant:320.0].active = YES;
 
-        NSTextField *numberField = [[NSTextField alloc] initWithFrame:NSMakeRect(0.0, 0.0, 220.0, 24.0)];
+        NSTextField *numberField = [[NSTextField alloc] initWithFrame:NSMakeRect(0.0, 0.0, 170.0, 24.0)];
         numberField.placeholderString = NSLocalizedString(@"Number", @"Operator panel station number placeholder.");
         numberField.stringValue = slot[OperatorPanelStationDestinationKey] ?: @"";
+        [numberField.widthAnchor constraintGreaterThanOrEqualToConstant:170.0].active = YES;
 
         [nameFields addObject:nameField];
         [numberFields addObject:numberField];
@@ -545,20 +720,23 @@ static NSString * const OperatorPanelStationDestinationKey = @"destination";
     gridView.rowSpacing = 8.0;
     gridView.columnSpacing = 10.0;
 
-    NSScrollView *scrollView = [[NSScrollView alloc] initWithFrame:NSMakeRect(0.0, 0.0, 470.0, 380.0)];
+    NSScrollView *scrollView = [[NSScrollView alloc] initWithFrame:NSMakeRect(0.0, 0.0, 620.0, 420.0)];
     scrollView.hasVerticalScroller = YES;
     scrollView.drawsBackground = NO;
     scrollView.borderType = NSNoBorder;
 
-    NSView *documentView = [[NSView alloc] initWithFrame:NSMakeRect(0.0, 0.0, 470.0, 380.0)];
+    NSView *documentView = [[NSView alloc] initWithFrame:NSMakeRect(0.0, 0.0, 620.0, 420.0)];
     gridView.translatesAutoresizingMaskIntoConstraints = NO;
     [documentView addSubview:gridView];
     [NSLayoutConstraint activateConstraints:@[
         [gridView.topAnchor constraintEqualToAnchor:documentView.topAnchor],
         [gridView.leadingAnchor constraintEqualToAnchor:documentView.leadingAnchor],
-        [gridView.trailingAnchor constraintEqualToAnchor:documentView.trailingAnchor],
+        [gridView.trailingAnchor constraintLessThanOrEqualToAnchor:documentView.trailingAnchor],
         [gridView.bottomAnchor constraintEqualToAnchor:documentView.bottomAnchor]
     ]];
+    [documentView layoutSubtreeIfNeeded];
+    NSSize fittingSize = gridView.fittingSize;
+    documentView.frame = NSMakeRect(0.0, 0.0, MAX(620.0, fittingSize.width), fittingSize.height);
     scrollView.documentView = documentView;
 
     NSAlert *alert = [[NSAlert alloc] init];

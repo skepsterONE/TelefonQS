@@ -34,6 +34,7 @@
 @property(nonatomic, weak) IBOutlet NSMenuItem *availableStateItem;
 @property(nonatomic, weak) IBOutlet NSMenuItem *unavailableStateItem;
 @property(nonatomic, weak) IBOutlet NSMenuItem *offlineStateItem;
+@property(nonatomic) NSTitlebarAccessoryViewController *callHistoryAccessoryViewController;
 
 @end
 
@@ -69,6 +70,13 @@
     self.window.title = self.accountDescription;
     self.window.frameAutosaveName = self.SIPAddress;
     self.window.excludedFromWindowsMenu = YES;
+    self.window.minSize = NSMakeSize(460.0, 720.0);
+    NSSize targetContentSize = NSMakeSize(420.0, 720.0);
+    if (self.window.contentView.frame.size.width < targetContentSize.width ||
+        self.window.contentView.frame.size.height < targetContentSize.height) {
+        [self.window setContentSize:NSMakeSize(MAX(self.window.contentView.frame.size.width, targetContentSize.width),
+                                               MAX(self.window.contentView.frame.size.height, targetContentSize.height))];
+    }
 
     [self.window.contentView addSubview:self.accountViewController.view];
     self.accountViewController.view.translatesAutoresizingMaskIntoConstraints = NO;
@@ -76,6 +84,7 @@
     [self.window.contentView addConstraints:[NSLayoutConstraint constraintsWithVisualFormat:@"H:|[view]|" options:0 metrics:nil views:views]];
     [self.window.contentView addConstraints:[NSLayoutConstraint constraintsWithVisualFormat:@"V:|[view]|" options:0 metrics:nil views:views]];
 
+    [self configureTitlebarControls];
     [self showOfflineStateAnimated:NO];
 }
 
@@ -160,6 +169,29 @@
 
 - (NSInteger)windowNumber {
     return self.window.windowNumber;
+}
+
+- (void)configureTitlebarControls {
+    NSButton *button = [NSButton buttonWithTitle:@"" target:self.accountViewController action:@selector(toggleCallHistory:)];
+    button.translatesAutoresizingMaskIntoConstraints = NO;
+    button.bezelStyle = NSBezelStyleTexturedRounded;
+    button.image = [NSImage imageWithSystemSymbolName:@"sidebar.left"
+                           accessibilityDescription:NSLocalizedString(@"Call History", @"Call history drawer title and toggle.")];
+    button.imagePosition = NSImageOnly;
+    button.contentTintColor = [NSColor secondaryLabelColor];
+
+    NSView *containerView = [[NSView alloc] initWithFrame:NSMakeRect(0.0, 0.0, 32.0, 14.0)];
+    containerView.translatesAutoresizingMaskIntoConstraints = NO;
+    [containerView addSubview:button];
+    [NSLayoutConstraint activateConstraints:@[
+        [button.centerXAnchor constraintEqualToAnchor:containerView.centerXAnchor],
+        [button.centerYAnchor constraintEqualToAnchor:containerView.centerYAnchor constant:-11.0]
+    ]];
+
+    self.callHistoryAccessoryViewController = [[NSTitlebarAccessoryViewController alloc] init];
+    self.callHistoryAccessoryViewController.view = containerView;
+    self.callHistoryAccessoryViewController.layoutAttribute = NSLayoutAttributeLeft;
+    [self.window addTitlebarAccessoryViewController:self.callHistoryAccessoryViewController];
 }
 
 #pragma mark - NSWindowDelegate

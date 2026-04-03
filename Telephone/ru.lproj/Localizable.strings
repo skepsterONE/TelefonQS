@@ -278,3 +278,12 @@
 
 /* Operator panel window title. */
 "Operator Panel" = "Панель оператора";
+
+/* Call history drawer title and toggle. */
+"Call History" = "История звонков";
+
+/* Hide drawer button. */
+"Hide" = "Скрыть";
+
+/* Hide call history drawer toggle. */
+"Hide History" = "Скрыть историю";

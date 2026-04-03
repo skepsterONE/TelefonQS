@@ -355,6 +355,8 @@
 		8A97060620FFAE3200984D39 /* PresentationSoundIO.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA7F6D4A1C0387160064DA3A /* PresentationSoundIO.swift */; };
 		8A9843D02746C02000EC0ACF /* UserDefaultsKeys.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8A9843CF2746C02000EC0ACF /* UserDefaultsKeys.swift */; };
 		8A9843D12746C56E00EC0ACF /* UserDefaultsKeys.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8A9843CF2746C02000EC0ACF /* UserDefaultsKeys.swift */; };
+		B10000032700000100000003 /* CallHistorySidebarContainerController.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000032700000100000002 /* CallHistorySidebarContainerController.swift */; };
+		B10000022700000100000003 /* MainWindowOperatorPanelViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = B10000022700000100000002 /* MainWindowOperatorPanelViewController.m */; };
 		B10000012700000100000003 /* OperatorPanelController.m in Sources */ = {isa = PBXBuildFile; fileRef = B10000012700000100000002 /* OperatorPanelController.m */; };
 		8A9A76372433B5E7002664CE /* IPVersionSettingsMigrationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8A9A76362433B5E7002664CE /* IPVersionSettingsMigrationTests.swift */; };
 		8A9A76392433B6F7002664CE /* IPVersionSettingsMigration.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8A9A76382433B6F7002664CE /* IPVersionSettingsMigration.swift */; };
@@ -1239,6 +1241,9 @@
 		8A9705FD20FF728E00984D39 /* SystemAudioDevices+Equatable.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "SystemAudioDevices+Equatable.swift"; sourceTree = "<group>"; };
 		8A9705FF20FF99EF00984D39 /* SoundIO+Equality.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "SoundIO+Equality.swift"; sourceTree = "<group>"; };
 		8A9843CF2746C02000EC0ACF /* UserDefaultsKeys.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UserDefaultsKeys.swift; sourceTree = "<group>"; };
+		B10000032700000100000002 /* CallHistorySidebarContainerController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CallHistorySidebarContainerController.swift; sourceTree = "<group>"; };
+		B10000022700000100000001 /* MainWindowOperatorPanelViewController.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = MainWindowOperatorPanelViewController.h; sourceTree = "<group>"; };
+		B10000022700000100000002 /* MainWindowOperatorPanelViewController.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = MainWindowOperatorPanelViewController.m; sourceTree = "<group>"; };
 		B10000012700000100000001 /* OperatorPanelController.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = OperatorPanelController.h; sourceTree = "<group>"; };
 		B10000012700000100000002 /* OperatorPanelController.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = OperatorPanelController.m; sourceTree = "<group>"; };
 		8A9A76362433B5E7002664CE /* IPVersionSettingsMigrationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = IPVersionSettingsMigrationTests.swift; path = TelephoneTests/IPVersionSettingsMigrationTests.swift; sourceTree = SOURCE_ROOT; };
@@ -1487,7 +1492,7 @@
 		8AFC630C1D8C24670022470D /* Spotify.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = Spotify.h; sourceTree = "<group>"; };
 		8AFC630D1D8C6F490022470D /* Array+Creating.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = "Array+Creating.swift"; sourceTree = "<group>"; };
 		8D1107310486CEB800E47090 /* Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
-		8D1107320486CEB800E47090 /* Telephone.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Telephone.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		8D1107320486CEB800E47090 /* TelefonQS.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = TelefonQS.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		AA0302F00EB9F347000738F7 /* AKSIPURI.h */ = {isa = PBXFileReference; fileEncoding = 4; indentWidth = 4; lastKnownFileType = sourcecode.c.h; path = AKSIPURI.h; sourceTree = "<group>"; tabWidth = 4; };
 		AA0302F10EB9F347000738F7 /* AKSIPURI.m */ = {isa = PBXFileReference; fileEncoding = 4; indentWidth = 4; lastKnownFileType = sourcecode.c.objc; path = AKSIPURI.m; sourceTree = "<group>"; tabWidth = 4; };
 		AA0693AE110228E4007EF898 /* ActiveAccountTransferViewController.h */ = {isa = PBXFileReference; fileEncoding = 4; indentWidth = 4; lastKnownFileType = sourcecode.c.h; path = ActiveAccountTransferViewController.h; sourceTree = "<group>"; tabWidth = 4; };
@@ -1855,6 +1860,9 @@
 				AAE39A3A1BDA59F100EFB7BC /* NSUserDefaults+KeyValueSettings.swift */,
 				8AA689951FFFED1E00BA369B /* NSWorkspace+FileBrowser.swift */,
 				8AA689971FFFEDA000BA369B /* NSWorkspace+WebBrowser.swift */,
+				B10000032700000100000002 /* CallHistorySidebarContainerController.swift */,
+				B10000022700000100000001 /* MainWindowOperatorPanelViewController.h */,
+				B10000022700000100000002 /* MainWindowOperatorPanelViewController.m */,
 				B10000012700000100000001 /* OperatorPanelController.h */,
 				B10000012700000100000002 /* OperatorPanelController.m */,
 				8AC443BE1F90E21E00ECE463 /* OrphanLogFileRemoval.swift */,
@@ -1884,7 +1892,7 @@
 		19C28FACFE9D520D11CA2CBB /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				8D1107320486CEB800E47090 /* Telephone.app */,
+				8D1107320486CEB800E47090 /* TelefonQS.app */,
 				AAF299100F575044007B5036 /* TelephoneAddressBookPhonePlugIn.bundle */,
 				AAF299970F57566B007B5036 /* TelephoneAddressBookSIPAddressPlugIn.bundle */,
 				AA3FAB851BBAAE630064B2C3 /* TelephoneTests.xctest */,
@@ -3375,8 +3383,8 @@
 			);
 			name = Telephone;
 			productInstallPath = "$(HOME)/Applications";
-			productName = Telephone;
-			productReference = 8D1107320486CEB800E47090 /* Telephone.app */;
+			productName = TelefonQS;
+			productReference = 8D1107320486CEB800E47090 /* TelefonQS.app */;
 			productType = "com.apple.product-type.application";
 		};
 		AA078B281BFF80E20013FF8F /* UseCases */ = {
@@ -3867,6 +3875,8 @@
 				8A4B600A2125DA3300B67357 /* CoreAudioChangeEventSource.swift in Sources */,
 				AA4BD4D80E07C305005A71B2 /* AppController.m in Sources */,
 				8ADD6A801CE0F995001EDBBA /* StoreViewController.swift in Sources */,
+				B10000032700000100000003 /* CallHistorySidebarContainerController.swift in Sources */,
+				B10000022700000100000003 /* MainWindowOperatorPanelViewController.m in Sources */,
 				B10000012700000100000003 /* OperatorPanelController.m in Sources */,
 				AA2C03F31BD7BE36001D25F9 /* CompositionRoot.swift in Sources */,
 				8A62B08B20D866C500716688 /* CoreAudioSystemAudioDevicesFactory.swift in Sources */,
@@ -5527,7 +5537,7 @@
 				CODE_SIGN_ENTITLEMENTS = Telephone/Telephone.entitlements;
 				CODE_SIGN_IDENTITY = "Mac Developer";
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 143;
+				CURRENT_PROJECT_VERSION = 250;
 				DEAD_CODE_STRIPPING = YES;
 				DEVELOPMENT_TEAM = B5WSA37RY8;
 				ENABLE_HARDENED_RUNTIME = YES;
@@ -5546,7 +5556,7 @@
 					"\"$(SRCROOT)/ThirdParty/LibreSSL/lib\"",
 					"\"$(SRCROOT)/ThirdParty/Opus/lib\"",
 				);
-				MARKETING_VERSION = 1.6;
+				MARKETING_VERSION = 2.5;
 				OTHER_LDFLAGS = (
 					"-lpjsua-arm-apple-darwin",
 					"-lpjsip-ua-arm-apple-darwin",
@@ -5568,7 +5578,9 @@
 					"-lopus",
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = com.tlphn.Telephone;
-				PRODUCT_NAME = Telephone;
+				PRODUCT_MODULE_NAME = Telephone;
+				PRODUCT_NAME = TelefonQS;
+				SWIFT_OBJC_INTERFACE_HEADER_NAME = "Telephone-Swift.h";
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
 				SWIFT_OBJC_BRIDGING_HEADER = "Telephone/Telephone-Bridging-Header.h";
 				SWIFT_STRICT_CONCURRENCY = complete;
@@ -5583,7 +5595,7 @@
 				CODE_SIGN_ENTITLEMENTS = Telephone/Telephone.entitlements;
 				CODE_SIGN_IDENTITY = "Mac Developer";
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 143;
+				CURRENT_PROJECT_VERSION = 250;
 				DEAD_CODE_STRIPPING = YES;
 				DEVELOPMENT_TEAM = B5WSA37RY8;
 				ENABLE_HARDENED_RUNTIME = YES;
@@ -5599,7 +5611,7 @@
 					"\"$(SRCROOT)/ThirdParty/LibreSSL/lib\"",
 					"\"$(SRCROOT)/ThirdParty/Opus/lib\"",
 				);
-				MARKETING_VERSION = 1.6;
+				MARKETING_VERSION = 2.5;
 				OTHER_LDFLAGS = (
 					"-lpjsua-arm-apple-darwin",
 					"-lpjsip-ua-arm-apple-darwin",
@@ -5621,7 +5633,9 @@
 					"-lopus",
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = com.tlphn.Telephone;
-				PRODUCT_NAME = Telephone;
+				PRODUCT_MODULE_NAME = Telephone;
+				PRODUCT_NAME = TelefonQS;
+				SWIFT_OBJC_INTERFACE_HEADER_NAME = "Telephone-Swift.h";
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
 				SWIFT_OBJC_BRIDGING_HEADER = "Telephone/Telephone-Bridging-Header.h";
 				SWIFT_STRICT_CONCURRENCY = complete;
