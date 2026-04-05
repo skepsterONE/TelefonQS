@@ -412,6 +412,7 @@ static const NSUInteger kAccountsMax = 32;
         [[self IPv6Button] setEnabled:NO];
         [[self updateIPAddressCheckBox] setEnabled:NO];
     }
+
 }
 
 - (IBAction)changeAccountEnabled:(id)sender {

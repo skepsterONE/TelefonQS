@@ -147,8 +147,7 @@ static CGFloat const kCallHistoryDrawerWidth = 360.0;
 }
 
 - (void)makeCallToDestination:(NSString *)destination {
-    self.activeAccountViewController.callDestinationField.tokenStyle = NSTokenStyleRounded;
-    self.activeAccountViewController.callDestinationField.stringValue = destination;
+    [self.activeAccountViewController setCallDestinationString:destination];
     [self.activeAccountViewController makeCall:self];
 }
 

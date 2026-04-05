@@ -15,12 +15,42 @@
 static NSInteger const kEmbeddedOperatorPanelStationCount = 16;
 static CGFloat const kEmbeddedOperatorPanelContentWidth = 392.0;
 static NSString * const EmbeddedOperatorPanelStationsKey = @"OperatorPanelStations";
+static NSString * const EmbeddedOperatorPanelStationsXMLSourceKey = @"OperatorPanelStationsXMLURL";
 static NSString * const EmbeddedOperatorPanelStationNameKey = @"name";
 static NSString * const EmbeddedOperatorPanelStationDestinationKey = @"destination";
+
+static BOOL EmbeddedOperatorPanelUsesDarkAppearance(NSAppearance *appearance) {
+    if (@available(macOS 10.14, *)) {
+        NSAppearanceName bestMatch = [appearance bestMatchFromAppearancesWithNames:@[
+            NSAppearanceNameAqua,
+            NSAppearanceNameDarkAqua
+        ]];
+        return [bestMatch isEqualToString:NSAppearanceNameDarkAqua];
+    }
+
+    return NO;
+}
 
 @interface EmbeddedOperatorPanelStationImportParser : NSObject <NSXMLParserDelegate>
 
 @property(nonatomic, readonly) NSArray<NSDictionary<NSString *, NSString *> *> *stations;
+
+@end
+
+@interface EmbeddedOperatorPanelRootView : NSView
+
+@property(nonatomic, copy) dispatch_block_t appearanceDidChangeHandler;
+
+@end
+
+@implementation EmbeddedOperatorPanelRootView
+
+- (void)viewDidChangeEffectiveAppearance {
+    [super viewDidChangeEffectiveAppearance];
+    if (self.appearanceDidChangeHandler != nil) {
+        self.appearanceDidChangeHandler();
+    }
+}
 
 @end
 
@@ -217,21 +247,30 @@ didStartElement:(NSString *)elementName
     [self setNeedsDisplay:YES];
 }
 
+- (void)viewDidChangeEffectiveAppearance {
+    [self applyEmbeddedStyle];
+}
+
 - (void)applyEmbeddedStyle {
+    BOOL darkAppearance = EmbeddedOperatorPanelUsesDarkAppearance(self.effectiveAppearance);
     NSColor *fillColor = self.enabled
-        ? (_hovering ? [NSColor colorWithSRGBRed:0.26 green:0.29 blue:0.38 alpha:0.96] : [NSColor colorWithSRGBRed:0.19 green:0.22 blue:0.30 alpha:0.92])
-        : [NSColor colorWithSRGBRed:0.15 green:0.17 blue:0.23 alpha:0.58];
+        ? (_hovering
+           ? (darkAppearance ? [NSColor colorWithSRGBRed:0.26 green:0.29 blue:0.38 alpha:0.96] : [NSColor colorWithSRGBRed:0.80 green:0.84 blue:0.92 alpha:0.96])
+           : (darkAppearance ? [NSColor colorWithSRGBRed:0.19 green:0.22 blue:0.30 alpha:0.92] : [NSColor colorWithSRGBRed:0.92 green:0.94 blue:0.98 alpha:0.98]))
+        : (darkAppearance ? [NSColor colorWithSRGBRed:0.15 green:0.17 blue:0.23 alpha:0.58] : [NSColor colorWithSRGBRed:0.95 green:0.96 blue:0.98 alpha:0.82]);
     NSColor *borderColor = self.enabled
-        ? (_hovering ? [NSColor colorWithWhite:1.0 alpha:0.18] : [NSColor colorWithWhite:1.0 alpha:0.09])
-        : [NSColor colorWithWhite:1.0 alpha:0.05];
+        ? (_hovering
+           ? (darkAppearance ? [NSColor colorWithWhite:1.0 alpha:0.18] : [NSColor colorWithSRGBRed:0.73 green:0.77 blue:0.86 alpha:1.0])
+           : (darkAppearance ? [NSColor colorWithWhite:1.0 alpha:0.09] : [NSColor colorWithSRGBRed:0.83 green:0.86 blue:0.92 alpha:1.0]))
+        : (darkAppearance ? [NSColor colorWithWhite:1.0 alpha:0.05] : [NSColor colorWithSRGBRed:0.88 green:0.90 blue:0.94 alpha:1.0]);
 
     self.layer.backgroundColor = fillColor.CGColor;
     self.layer.borderColor = borderColor.CGColor;
     self.layer.borderWidth = 1.0;
-    self.layer.shadowColor = [NSColor colorWithWhite:0.0 alpha:0.24].CGColor;
+    self.layer.shadowColor = (darkAppearance ? [NSColor colorWithWhite:0.0 alpha:0.24] : [NSColor colorWithSRGBRed:0.66 green:0.70 blue:0.78 alpha:0.18]).CGColor;
     self.layer.shadowOpacity = 1.0;
     self.layer.shadowOffset = CGSizeMake(0.0, _hovering ? -1.0 : -2.0);
-    self.layer.shadowRadius = _hovering ? 10.0 : 14.0;
+    self.layer.shadowRadius = darkAppearance ? (_hovering ? 10.0 : 14.0) : (_hovering ? 6.0 : 8.0);
     [self setNeedsDisplay:YES];
 }
 
@@ -239,8 +278,11 @@ didStartElement:(NSString *)elementName
     [[NSColor clearColor] setFill];
     NSRectFill(dirtyRect);
 
+    BOOL darkAppearance = EmbeddedOperatorPanelUsesDarkAppearance(self.effectiveAppearance);
     NSDictionary *attributes = @{
-        NSForegroundColorAttributeName: self.enabled ? [NSColor colorWithWhite:0.985 alpha:0.98] : [NSColor colorWithWhite:0.82 alpha:0.48],
+        NSForegroundColorAttributeName: self.enabled
+            ? (darkAppearance ? [NSColor colorWithWhite:0.985 alpha:0.98] : [NSColor colorWithSRGBRed:0.23 green:0.25 blue:0.32 alpha:1.0])
+            : (darkAppearance ? [NSColor colorWithWhite:0.82 alpha:0.48] : [NSColor colorWithSRGBRed:0.53 green:0.56 blue:0.64 alpha:0.72]),
         NSFontAttributeName: [NSFont systemFontOfSize:16.0 weight:NSFontWeightSemibold]
     };
     NSSize titleSize = [self.title sizeWithAttributes:attributes];
@@ -329,29 +371,80 @@ didStartElement:(NSString *)elementName
 
 - (void)setTitle:(NSString *)title {
     [super setTitle:title];
+    BOOL darkAppearance = EmbeddedOperatorPanelUsesDarkAppearance(self.effectiveAppearance);
+    NSColor *primaryTextColor = self.enabled
+        ? (darkAppearance ? [NSColor colorWithWhite:0.97 alpha:0.95] : [NSColor colorWithSRGBRed:0.23 green:0.25 blue:0.32 alpha:1.0])
+        : (darkAppearance ? [NSColor colorWithWhite:0.82 alpha:0.46] : [NSColor colorWithSRGBRed:0.57 green:0.60 blue:0.68 alpha:0.70]);
+    NSColor *secondaryTextColor = self.enabled
+        ? (darkAppearance ? [NSColor colorWithWhite:0.72 alpha:0.52] : [NSColor colorWithSRGBRed:0.60 green:0.63 blue:0.70 alpha:0.95])
+        : (darkAppearance ? [NSColor colorWithWhite:0.64 alpha:0.34] : [NSColor colorWithSRGBRed:0.68 green:0.71 blue:0.77 alpha:0.72]);
+
+    NSArray<NSString *> *lines = [title componentsSeparatedByString:@"\n"];
+    NSString *firstLine = lines.count > 0 ? lines[0] : @"";
+    NSString *secondLine = lines.count > 1 ? lines[1] : @"";
+
     NSMutableParagraphStyle *paragraphStyle = [[NSMutableParagraphStyle alloc] init];
     paragraphStyle.alignment = NSTextAlignmentCenter;
     paragraphStyle.lineBreakMode = NSLineBreakByWordWrapping;
-    NSColor *textColor = self.enabled ? [NSColor colorWithWhite:0.97 alpha:0.95] : [NSColor colorWithWhite:0.82 alpha:0.46];
-    self.attributedTitle = [[NSAttributedString alloc] initWithString:title
-                                                           attributes:@{
-                                                               NSForegroundColorAttributeName: textColor,
-                                                               NSFontAttributeName: [NSFont systemFontOfSize:12.5 weight:NSFontWeightSemibold],
-                                                               NSParagraphStyleAttributeName: paragraphStyle
-                                                           }];
+    paragraphStyle.lineSpacing = 1.0;
+
+    NSMutableAttributedString *attributedTitle = [[NSMutableAttributedString alloc] init];
+    if (firstLine.length > 0) {
+        [attributedTitle appendAttributedString:[[NSAttributedString alloc] initWithString:firstLine
+                                                                                 attributes:@{
+            NSForegroundColorAttributeName: primaryTextColor,
+            NSFontAttributeName: [NSFont systemFontOfSize:16.0 weight:NSFontWeightSemibold],
+            NSParagraphStyleAttributeName: paragraphStyle
+        }]];
+    }
+
+    if (secondLine.length > 0) {
+        if (attributedTitle.length > 0) {
+            [attributedTitle appendAttributedString:[[NSAttributedString alloc] initWithString:@"\n"
+                                                                                     attributes:@{
+                NSParagraphStyleAttributeName: paragraphStyle
+            }]];
+        }
+        [attributedTitle appendAttributedString:[[NSAttributedString alloc] initWithString:secondLine
+                                                                                 attributes:@{
+            NSForegroundColorAttributeName: secondaryTextColor,
+            NSFontAttributeName: [NSFont systemFontOfSize:9.0 weight:NSFontWeightMedium],
+            NSParagraphStyleAttributeName: paragraphStyle
+        }]];
+    }
+
+    if (attributedTitle.length == 0) {
+        [attributedTitle appendAttributedString:[[NSAttributedString alloc] initWithString:title
+                                                                                 attributes:@{
+            NSForegroundColorAttributeName: primaryTextColor,
+            NSFontAttributeName: [NSFont systemFontOfSize:16.0 weight:NSFontWeightSemibold],
+            NSParagraphStyleAttributeName: paragraphStyle
+        }]];
+    }
+
+    self.attributedTitle = attributedTitle;
+}
+
+- (void)viewDidChangeEffectiveAppearance {
+    [self applyEmbeddedStyle];
 }
 
 - (void)applyEmbeddedStyle {
+    BOOL darkAppearance = EmbeddedOperatorPanelUsesDarkAppearance(self.effectiveAppearance);
     NSColor *fillColor = self.enabled
-        ? (_hovering ? [NSColor colorWithSRGBRed:0.30 green:0.32 blue:0.40 alpha:0.96] : [NSColor colorWithSRGBRed:0.24 green:0.25 blue:0.32 alpha:0.94])
-        : [NSColor colorWithSRGBRed:0.18 green:0.19 blue:0.25 alpha:0.62];
+        ? (_hovering
+           ? (darkAppearance ? [NSColor colorWithSRGBRed:0.30 green:0.32 blue:0.40 alpha:0.96] : [NSColor colorWithSRGBRed:0.82 green:0.86 blue:0.94 alpha:0.98])
+           : (darkAppearance ? [NSColor colorWithSRGBRed:0.24 green:0.25 blue:0.32 alpha:0.94] : [NSColor colorWithSRGBRed:0.91 green:0.93 blue:0.97 alpha:0.98]))
+        : (darkAppearance ? [NSColor colorWithSRGBRed:0.18 green:0.19 blue:0.25 alpha:0.62] : [NSColor colorWithSRGBRed:0.95 green:0.96 blue:0.98 alpha:0.84]);
     self.layer.backgroundColor = fillColor.CGColor;
-    self.layer.borderColor = [NSColor colorWithWhite:1.0 alpha:(self.enabled ? 0.07 : 0.04)].CGColor;
+    self.layer.borderColor = (darkAppearance
+                              ? [NSColor colorWithWhite:1.0 alpha:(self.enabled ? 0.07 : 0.04)]
+                              : [NSColor colorWithSRGBRed:0.84 green:0.87 blue:0.92 alpha:(self.enabled ? 1.0 : 0.72)]).CGColor;
     self.layer.borderWidth = 1.0;
-    self.layer.shadowColor = [NSColor colorWithWhite:0.0 alpha:0.18].CGColor;
+    self.layer.shadowColor = (darkAppearance ? [NSColor colorWithWhite:0.0 alpha:0.18] : [NSColor colorWithSRGBRed:0.67 green:0.70 blue:0.77 alpha:0.14]).CGColor;
     self.layer.shadowOpacity = 1.0;
     self.layer.shadowOffset = CGSizeMake(0.0, -1.0);
-    self.layer.shadowRadius = 8.0;
+    self.layer.shadowRadius = darkAppearance ? 8.0 : 4.0;
     [self setTitle:self.title];
 }
 
@@ -374,6 +467,13 @@ didStartElement:(NSString *)elementName
 @property(nonatomic) NSButton *answerButton;
 @property(nonatomic) NSButton *hangUpButton;
 @property(nonatomic) NSMutableArray<NSButton *> *stationButtons;
+@property(nonatomic) NSStackView *stationsStack;
+@property(nonatomic) NSWindow *stationConfigurationSheet;
+@property(nonatomic) NSMutableArray<NSTextField *> *stationConfigurationNameFields;
+@property(nonatomic) NSMutableArray<NSTextField *> *stationConfigurationNumberFields;
+@property(nonatomic) NSTextField *stationConfigurationXMLSourceField;
+@property(nonatomic) NSGridView *stationConfigurationGridView;
+@property(nonatomic) NSScrollView *stationConfigurationScrollView;
 
 @end
 
@@ -396,15 +496,19 @@ didStartElement:(NSString *)elementName
 }
 
 - (void)loadView {
-    NSView *rootView = [[NSView alloc] initWithFrame:NSMakeRect(0.0, 0.0, 360.0, 760.0)];
+    EmbeddedOperatorPanelRootView *rootView = [[EmbeddedOperatorPanelRootView alloc] initWithFrame:NSMakeRect(0.0, 0.0, 360.0, 760.0)];
     rootView.wantsLayer = YES;
-    rootView.layer.backgroundColor = [NSColor colorWithSRGBRed:0.12 green:0.13 blue:0.19 alpha:1.0].CGColor;
+    __weak typeof(self) weakSelf = self;
+    rootView.appearanceDidChangeHandler = ^{
+        [weakSelf applyCurrentAppearance];
+    };
     self.view = rootView;
     [self buildInterface];
 }
 
 - (void)viewDidLoad {
     [super viewDidLoad];
+    [self applyCurrentAppearance];
     [self refreshUI];
 }
 
@@ -452,6 +556,118 @@ didStartElement:(NSString *)elementName
     return stack;
 }
 
+- (NSArray<NSDictionary<NSString *, NSString *> *> *)stationEntriesFromConfigurationFields {
+    NSMutableArray<NSDictionary<NSString *, NSString *> *> *entries = [[NSMutableArray alloc] initWithCapacity:self.stationConfigurationNameFields.count];
+    for (NSInteger index = 0; index < self.stationConfigurationNameFields.count; ++index) {
+        NSString *name = [self.stationConfigurationNameFields[index].stringValue stringByTrimmingCharactersInSet:NSCharacterSet.whitespaceAndNewlineCharacterSet];
+        NSString *number = [self.stationConfigurationNumberFields[index].stringValue stringByTrimmingCharactersInSet:NSCharacterSet.whitespaceAndNewlineCharacterSet];
+        [entries addObject:@{
+            EmbeddedOperatorPanelStationNameKey: name ?: @"",
+            EmbeddedOperatorPanelStationDestinationKey: number ?: @""
+        }];
+    }
+    return [entries copy];
+}
+
+- (NSInteger)effectiveStationCount {
+    return MAX(1, self.stationKeys.count);
+}
+
+- (NSDictionary<NSString *, NSString *> *)emptyStationEntry {
+    return @{
+        EmbeddedOperatorPanelStationNameKey: @"",
+        EmbeddedOperatorPanelStationDestinationKey: @""
+    };
+}
+
+- (void)refreshStationConfigurationEditorRows {
+    if (self.stationConfigurationScrollView == nil) {
+        return;
+    }
+
+    NSInteger stationCount = [self effectiveStationCount];
+    NSMutableArray<NSTextField *> *nameFields = [[NSMutableArray alloc] initWithCapacity:stationCount];
+    NSMutableArray<NSTextField *> *numberFields = [[NSMutableArray alloc] initWithCapacity:stationCount];
+    NSMutableArray<NSArray<NSView *> *> *rows = [[NSMutableArray alloc] initWithCapacity:(NSUInteger)stationCount + 1];
+
+    [rows addObject:@[
+        [NSTextField labelWithString:NSLocalizedString(@"Key", @"Operator panel station editor key column.")],
+        [NSTextField labelWithString:NSLocalizedString(@"Name", @"Operator panel station editor name column.")],
+        [NSTextField labelWithString:NSLocalizedString(@"Number", @"Operator panel station editor number column.")]
+    ]];
+
+    for (NSInteger index = 0; index < stationCount; ++index) {
+        NSDictionary<NSString *, NSString *> *slot = self.stationKeys[index];
+
+        NSTextField *indexLabel = [NSTextField labelWithString:[NSString stringWithFormat:@"%ld", index + 1]];
+        NSTextField *nameField = [[NSTextField alloc] initWithFrame:NSMakeRect(0.0, 0.0, 250.0, 24.0)];
+        nameField.placeholderString = NSLocalizedString(@"Name", @"Operator panel station name placeholder.");
+        nameField.stringValue = slot[EmbeddedOperatorPanelStationNameKey] ?: @"";
+        [nameField.widthAnchor constraintGreaterThanOrEqualToConstant:250.0].active = YES;
+
+        NSTextField *numberField = [[NSTextField alloc] initWithFrame:NSMakeRect(0.0, 0.0, 160.0, 24.0)];
+        numberField.placeholderString = NSLocalizedString(@"Number", @"Operator panel station number placeholder.");
+        numberField.stringValue = slot[EmbeddedOperatorPanelStationDestinationKey] ?: @"";
+        [numberField.widthAnchor constraintGreaterThanOrEqualToConstant:160.0].active = YES;
+
+        [nameFields addObject:nameField];
+        [numberFields addObject:numberField];
+        [rows addObject:@[indexLabel, nameField, numberField]];
+    }
+
+    NSGridView *gridView = [NSGridView gridViewWithViews:rows];
+    gridView.rowSpacing = 8.0;
+    gridView.columnSpacing = 10.0;
+    self.stationConfigurationGridView = gridView;
+
+    NSView *documentView = [[NSView alloc] initWithFrame:NSMakeRect(0.0, 0.0, 620.0, 420.0)];
+    gridView.translatesAutoresizingMaskIntoConstraints = NO;
+    [documentView addSubview:gridView];
+    [NSLayoutConstraint activateConstraints:@[
+        [gridView.topAnchor constraintEqualToAnchor:documentView.topAnchor],
+        [gridView.leadingAnchor constraintEqualToAnchor:documentView.leadingAnchor],
+        [gridView.trailingAnchor constraintLessThanOrEqualToAnchor:documentView.trailingAnchor],
+        [gridView.bottomAnchor constraintEqualToAnchor:documentView.bottomAnchor]
+    ]];
+
+    [documentView layoutSubtreeIfNeeded];
+    NSSize fittingSize = gridView.fittingSize;
+    documentView.frame = NSMakeRect(0.0, 0.0, MAX(620.0, fittingSize.width), fittingSize.height);
+    self.stationConfigurationScrollView.documentView = documentView;
+
+    self.stationConfigurationNameFields = nameFields;
+    self.stationConfigurationNumberFields = numberFields;
+}
+
+- (void)rebuildStationButtons {
+    for (NSView *view in self.stationsStack.arrangedSubviews.copy) {
+        [self.stationsStack removeArrangedSubview:view];
+        [view removeFromSuperview];
+    }
+    [self.stationButtons removeAllObjects];
+
+    NSInteger stationCount = [self effectiveStationCount];
+    for (NSInteger row = 0; row < stationCount; row += 2) {
+        EmbeddedOperatorPanelStationButton *leftButton = [self stationButtonAtIndex:row];
+        [self.stationButtons addObject:leftButton];
+
+        NSView *rightView = nil;
+        if (row + 1 < stationCount) {
+            EmbeddedOperatorPanelStationButton *rightButton = [self stationButtonAtIndex:row + 1];
+            [self.stationButtons addObject:rightButton];
+            rightView = rightButton;
+        } else {
+            NSView *spacer = [[NSView alloc] initWithFrame:NSZeroRect];
+            spacer.translatesAutoresizingMaskIntoConstraints = NO;
+            rightView = spacer;
+        }
+
+        NSStackView *rowStack = [self rowStackWithViews:@[leftButton, rightView]];
+        [rowStack.widthAnchor constraintEqualToConstant:kEmbeddedOperatorPanelContentWidth].active = YES;
+        [self.stationsStack addArrangedSubview:rowStack];
+    }
+}
+
 - (void)buildInterface {
     NSScrollView *scrollView = [[NSScrollView alloc] initWithFrame:NSZeroRect];
     scrollView.translatesAutoresizingMaskIntoConstraints = NO;
@@ -495,7 +711,7 @@ didStartElement:(NSString *)elementName
                                         symbolColor:[NSColor colorWithWhite:0.95 alpha:0.95]];
     self.answerButton = [self actionButtonWithTitle:NSLocalizedString(@"Answer", @"Call answer button.")
                                              action:@selector(answer:)
-                                         symbolName:@"phone.badge.plus.fill"
+                                         symbolName:@"phone.fill"
                                         symbolColor:[NSColor colorWithSRGBRed:0.49 green:0.78 blue:0.58 alpha:1.0]];
     self.hangUpButton = [self actionButtonWithTitle:NSLocalizedString(@"End Call", @"End Call. Call menu item.")
                                              action:@selector(hangUp:)
@@ -525,20 +741,11 @@ didStartElement:(NSString *)elementName
     [configureStationsButton setContentHuggingPriority:NSLayoutPriorityDefaultHigh forOrientation:NSLayoutConstraintOrientationHorizontal];
     [configureStationsButton setContentCompressionResistancePriority:NSLayoutPriorityDefaultHigh forOrientation:NSLayoutConstraintOrientationHorizontal];
 
-    NSStackView *stationsStack = [[NSStackView alloc] init];
-    stationsStack.orientation = NSUserInterfaceLayoutOrientationVertical;
-    stationsStack.spacing = 10.0;
-    stationsStack.translatesAutoresizingMaskIntoConstraints = NO;
-    for (NSInteger row = 0; row < kEmbeddedOperatorPanelStationCount / 2; ++row) {
-        NSInteger leftIndex = row * 2;
-        EmbeddedOperatorPanelStationButton *leftButton = [self stationButtonAtIndex:leftIndex];
-        EmbeddedOperatorPanelStationButton *rightButton = [self stationButtonAtIndex:leftIndex + 1];
-        [self.stationButtons addObject:leftButton];
-        [self.stationButtons addObject:rightButton];
-        NSStackView *rowStack = [self rowStackWithViews:@[leftButton, rightButton]];
-        [rowStack.widthAnchor constraintEqualToConstant:kEmbeddedOperatorPanelContentWidth].active = YES;
-        [stationsStack addArrangedSubview:rowStack];
-    }
+    self.stationsStack = [[NSStackView alloc] init];
+    self.stationsStack.orientation = NSUserInterfaceLayoutOrientationVertical;
+    self.stationsStack.spacing = 10.0;
+    self.stationsStack.translatesAutoresizingMaskIntoConstraints = NO;
+    [self rebuildStationButtons];
 
     NSStackView *contentStack = [[NSStackView alloc] init];
     contentStack.orientation = NSUserInterfaceLayoutOrientationVertical;
@@ -548,7 +755,7 @@ didStartElement:(NSString *)elementName
     [contentStack addArrangedSubview:headerStack];
     [contentStack addArrangedSubview:actionsStack];
     [contentStack addArrangedSubview:configureStationsButton];
-    [contentStack addArrangedSubview:stationsStack];
+    [contentStack addArrangedSubview:self.stationsStack];
     contentStack.alignment = NSLayoutAttributeCenterX;
 
     [documentView addSubview:contentStack];
@@ -704,12 +911,41 @@ didStartElement:(NSString *)elementName
     [self refreshStationButtons];
 }
 
+- (void)applyCurrentAppearance {
+    BOOL darkAppearance = EmbeddedOperatorPanelUsesDarkAppearance(self.view.effectiveAppearance);
+    self.view.layer.backgroundColor = (darkAppearance
+                                       ? [NSColor colorWithSRGBRed:0.12 green:0.13 blue:0.19 alpha:1.0]
+                                       : [NSColor whiteColor]).CGColor;
+    self.callTitleField.textColor = darkAppearance
+        ? [NSColor colorWithWhite:0.98 alpha:0.96]
+        : [NSColor colorWithSRGBRed:0.23 green:0.25 blue:0.32 alpha:1.0];
+    self.callStatusField.textColor = darkAppearance
+        ? [NSColor colorWithWhite:0.88 alpha:0.72]
+        : [NSColor colorWithSRGBRed:0.49 green:0.52 blue:0.60 alpha:0.82];
+
+    [(EmbeddedOperatorPanelActionButton *)self.muteButton applyEmbeddedStyle];
+    [(EmbeddedOperatorPanelActionButton *)self.holdButton applyEmbeddedStyle];
+    [(EmbeddedOperatorPanelActionButton *)self.transferButton applyEmbeddedStyle];
+    [(EmbeddedOperatorPanelActionButton *)self.recallButton applyEmbeddedStyle];
+    [(EmbeddedOperatorPanelActionButton *)self.answerButton applyEmbeddedStyle];
+    [(EmbeddedOperatorPanelActionButton *)self.hangUpButton applyEmbeddedStyle];
+
+    for (EmbeddedOperatorPanelStationButton *button in self.stationButtons) {
+        [button applyEmbeddedStyle];
+    }
+}
+
 - (void)refreshStationButtons {
     CallController *controller = [self currentCallController];
     BOOL canTransfer = [self currentCallCanHoldOrTransfer];
 
     for (NSInteger index = 0; index < self.stationButtons.count; ++index) {
         EmbeddedOperatorPanelStationButton *button = (EmbeddedOperatorPanelStationButton *)self.stationButtons[index];
+        if (index >= self.stationKeys.count) {
+            button.hidden = YES;
+            continue;
+        }
+        button.hidden = NO;
         NSDictionary<NSString *, NSString *> *slot = self.stationKeys[index];
         NSString *name = slot[EmbeddedOperatorPanelStationNameKey];
         NSString *destination = slot[EmbeddedOperatorPanelStationDestinationKey];
@@ -821,99 +1057,192 @@ didStartElement:(NSString *)elementName
 }
 
 - (void)showStationConfiguration:(id)sender {
-    NSMutableArray<NSTextField *> *nameFields = [[NSMutableArray alloc] initWithCapacity:kEmbeddedOperatorPanelStationCount];
-    NSMutableArray<NSTextField *> *numberFields = [[NSMutableArray alloc] initWithCapacity:kEmbeddedOperatorPanelStationCount];
-    NSMutableArray<NSArray<NSView *> *> *rows = [[NSMutableArray alloc] initWithCapacity:(NSUInteger)kEmbeddedOperatorPanelStationCount + 1];
-
-    [rows addObject:@[
-        [NSTextField labelWithString:NSLocalizedString(@"Key", @"Operator panel station editor key column.")],
-        [NSTextField labelWithString:NSLocalizedString(@"Name", @"Operator panel station editor name column.")],
-        [NSTextField labelWithString:NSLocalizedString(@"Number", @"Operator panel station editor number column.")]
-    ]];
-
-    for (NSInteger index = 0; index < kEmbeddedOperatorPanelStationCount; ++index) {
-        NSDictionary<NSString *, NSString *> *slot = self.stationKeys[index];
-
-        NSTextField *indexLabel = [NSTextField labelWithString:[NSString stringWithFormat:@"%ld", index + 1]];
-        NSTextField *nameField = [[NSTextField alloc] initWithFrame:NSMakeRect(0.0, 0.0, 320.0, 24.0)];
-        nameField.placeholderString = NSLocalizedString(@"Name", @"Operator panel station name placeholder.");
-        nameField.stringValue = slot[EmbeddedOperatorPanelStationNameKey] ?: @"";
-        [nameField.widthAnchor constraintGreaterThanOrEqualToConstant:320.0].active = YES;
-
-        NSTextField *numberField = [[NSTextField alloc] initWithFrame:NSMakeRect(0.0, 0.0, 220.0, 24.0)];
-        numberField.placeholderString = NSLocalizedString(@"Number", @"Operator panel station number placeholder.");
-        numberField.stringValue = slot[EmbeddedOperatorPanelStationDestinationKey] ?: @"";
-        [numberField.widthAnchor constraintGreaterThanOrEqualToConstant:220.0].active = YES;
-
-        [nameFields addObject:nameField];
-        [numberFields addObject:numberField];
-        [rows addObject:@[indexLabel, nameField, numberField]];
-    }
-
-    NSGridView *gridView = [NSGridView gridViewWithViews:rows];
-    gridView.rowSpacing = 8.0;
-    gridView.columnSpacing = 10.0;
-
-    NSScrollView *scrollView = [[NSScrollView alloc] initWithFrame:NSMakeRect(0.0, 0.0, 700.0, 420.0)];
+    NSScrollView *scrollView = [[NSScrollView alloc] initWithFrame:NSMakeRect(0.0, 0.0, 620.0, 420.0)];
     scrollView.hasVerticalScroller = YES;
     scrollView.drawsBackground = NO;
     scrollView.borderType = NSNoBorder;
 
-    NSView *documentView = [[NSView alloc] initWithFrame:NSMakeRect(0.0, 0.0, 700.0, 420.0)];
-    gridView.translatesAutoresizingMaskIntoConstraints = NO;
-    [documentView addSubview:gridView];
+    NSTextField *descriptionLabel = [NSTextField wrappingLabelWithString:NSLocalizedString(@"Set name and number for each station key.", @"Operator panel station editor text.")];
+    descriptionLabel.font = [NSFont systemFontOfSize:14.0];
+    [descriptionLabel.widthAnchor constraintEqualToConstant:620.0].active = YES;
+
+    NSTextField *xmlLabel = [NSTextField labelWithString:NSLocalizedString(@"Station Keys XML:", @"Station key XML source label.")];
+    xmlLabel.font = [NSFont systemFontOfSize:13.0 weight:NSFontWeightSemibold];
+
+    NSTextField *xmlSourceField = [[NSTextField alloc] initWithFrame:NSMakeRect(0.0, 0.0, 620.0, 24.0)];
+    xmlSourceField.placeholderString = NSLocalizedString(@"URL or local XML path", @"Station key XML source placeholder.");
+    xmlSourceField.stringValue = [self.defaults stringForKey:EmbeddedOperatorPanelStationsXMLSourceKey] ?: @"";
+    [xmlSourceField.widthAnchor constraintGreaterThanOrEqualToConstant:620.0].active = YES;
+
+    NSButton *chooseFileButton = [NSButton buttonWithTitle:NSLocalizedString(@"Choose File…", @"Choose XML file button.")
+                                                    target:self
+                                                    action:@selector(chooseStationKeysXMLFileFromConfiguration:)];
+    chooseFileButton.bezelStyle = NSBezelStyleRounded;
+    chooseFileButton.controlSize = NSControlSizeSmall;
+
+    NSButton *reloadXMLButton = [NSButton buttonWithTitle:NSLocalizedString(@"Reload XML", @"Reload XML button.")
+                                                   target:self
+                                                   action:@selector(reloadStationKeysFromConfigurationXML:)];
+    reloadXMLButton.bezelStyle = NSBezelStyleRounded;
+
+    NSButton *clearAllButton = [NSButton buttonWithTitle:NSLocalizedString(@"Clear All", @"Clear all button.")
+                                                  target:self
+                                                  action:@selector(clearStationKeysInConfiguration:)];
+    clearAllButton.bezelStyle = NSBezelStyleRounded;
+    clearAllButton.controlSize = NSControlSizeSmall;
+
+    NSButton *addRowButton = [NSButton buttonWithTitle:NSLocalizedString(@"Zeile hinzufügen", @"Add station key row button.")
+                                                target:self
+                                                action:@selector(addStationKeyRowInConfiguration:)];
+    addRowButton.bezelStyle = NSBezelStyleRounded;
+    addRowButton.controlSize = NSControlSizeSmall;
+
+    NSStackView *xmlFieldRow = [[NSStackView alloc] init];
+    xmlFieldRow.orientation = NSUserInterfaceLayoutOrientationVertical;
+    xmlFieldRow.alignment = NSLayoutAttributeLeading;
+    xmlFieldRow.spacing = 6.0;
+    xmlFieldRow.translatesAutoresizingMaskIntoConstraints = NO;
+    [xmlFieldRow addArrangedSubview:xmlSourceField];
+
+    NSStackView *xmlButtonRow = [[NSStackView alloc] init];
+    xmlButtonRow.orientation = NSUserInterfaceLayoutOrientationHorizontal;
+    xmlButtonRow.alignment = NSLayoutAttributeCenterY;
+    xmlButtonRow.spacing = 8.0;
+    xmlButtonRow.translatesAutoresizingMaskIntoConstraints = NO;
+    [xmlButtonRow addArrangedSubview:chooseFileButton];
+    [xmlButtonRow addArrangedSubview:reloadXMLButton];
+    [xmlButtonRow addArrangedSubview:addRowButton];
+    [xmlButtonRow addArrangedSubview:clearAllButton];
+    [xmlFieldRow addArrangedSubview:xmlButtonRow];
+
+    NSStackView *xmlRow = [[NSStackView alloc] init];
+    xmlRow.orientation = NSUserInterfaceLayoutOrientationVertical;
+    xmlRow.alignment = NSLayoutAttributeLeading;
+    xmlRow.spacing = 6.0;
+    xmlRow.translatesAutoresizingMaskIntoConstraints = NO;
+    [xmlRow addArrangedSubview:xmlLabel];
+    [xmlRow addArrangedSubview:xmlFieldRow];
+
+    NSStackView *accessoryStack = [[NSStackView alloc] init];
+    accessoryStack.orientation = NSUserInterfaceLayoutOrientationVertical;
+    accessoryStack.spacing = 12.0;
+    accessoryStack.alignment = NSLayoutAttributeLeading;
+    accessoryStack.translatesAutoresizingMaskIntoConstraints = NO;
+    [accessoryStack addArrangedSubview:descriptionLabel];
+    [accessoryStack addArrangedSubview:xmlRow];
+    [accessoryStack addArrangedSubview:scrollView];
+    [accessoryStack.widthAnchor constraintEqualToConstant:620.0].active = YES;
+
+    NSButton *cancelButton = [NSButton buttonWithTitle:NSLocalizedString(@"Cancel", @"Cancel button.")
+                                                target:self
+                                                action:@selector(cancelStationConfigurationSheet:)];
+    cancelButton.bezelStyle = NSBezelStyleRounded;
+
+    NSButton *saveButton = [NSButton buttonWithTitle:NSLocalizedString(@"Save", @"Save button.")
+                                              target:self
+                                              action:@selector(saveStationConfigurationSheet:)];
+    saveButton.bezelStyle = NSBezelStyleRounded;
+    if (@available(macOS 11.0, *)) {
+        saveButton.hasDestructiveAction = NO;
+    }
+
+    NSStackView *buttonRow = [[NSStackView alloc] init];
+    buttonRow.orientation = NSUserInterfaceLayoutOrientationHorizontal;
+    buttonRow.spacing = 12.0;
+    buttonRow.distribution = NSStackViewDistributionFillEqually;
+    buttonRow.translatesAutoresizingMaskIntoConstraints = NO;
+    [buttonRow addArrangedSubview:cancelButton];
+    [buttonRow addArrangedSubview:saveButton];
+    [buttonRow.widthAnchor constraintEqualToConstant:360.0].active = YES;
+
+    NSView *contentView = [[NSView alloc] initWithFrame:NSMakeRect(0.0, 0.0, 680.0, 640.0)];
+    contentView.translatesAutoresizingMaskIntoConstraints = NO;
+
+    NSTextField *titleLabel = [NSTextField labelWithString:NSLocalizedString(@"Configure Station Keys", @"Operator panel station editor title.")];
+    titleLabel.font = [NSFont boldSystemFontOfSize:24.0];
+
+    [contentView addSubview:titleLabel];
+    [contentView addSubview:accessoryStack];
+    [contentView addSubview:buttonRow];
+
+    titleLabel.translatesAutoresizingMaskIntoConstraints = NO;
+    accessoryStack.translatesAutoresizingMaskIntoConstraints = NO;
+    buttonRow.translatesAutoresizingMaskIntoConstraints = NO;
+
     [NSLayoutConstraint activateConstraints:@[
-        [gridView.topAnchor constraintEqualToAnchor:documentView.topAnchor],
-        [gridView.leadingAnchor constraintEqualToAnchor:documentView.leadingAnchor],
-        [gridView.trailingAnchor constraintLessThanOrEqualToAnchor:documentView.trailingAnchor],
-        [gridView.bottomAnchor constraintEqualToAnchor:documentView.bottomAnchor]
+        [titleLabel.topAnchor constraintEqualToAnchor:contentView.topAnchor constant:24.0],
+        [titleLabel.leadingAnchor constraintEqualToAnchor:contentView.leadingAnchor constant:28.0],
+
+        [accessoryStack.topAnchor constraintEqualToAnchor:titleLabel.bottomAnchor constant:14.0],
+        [accessoryStack.leadingAnchor constraintEqualToAnchor:contentView.leadingAnchor constant:28.0],
+        [accessoryStack.trailingAnchor constraintEqualToAnchor:contentView.trailingAnchor constant:-28.0],
+
+        [buttonRow.topAnchor constraintEqualToAnchor:accessoryStack.bottomAnchor constant:18.0],
+        [buttonRow.trailingAnchor constraintEqualToAnchor:contentView.trailingAnchor constant:-28.0],
+        [buttonRow.bottomAnchor constraintEqualToAnchor:contentView.bottomAnchor constant:-24.0]
     ]];
-    [documentView layoutSubtreeIfNeeded];
-    NSSize fittingSize = gridView.fittingSize;
-    documentView.frame = NSMakeRect(0.0, 0.0, MAX(700.0, fittingSize.width), fittingSize.height);
-    scrollView.documentView = documentView;
 
-    NSAlert *alert = [[NSAlert alloc] init];
-    alert.messageText = NSLocalizedString(@"Configure Station Keys", @"Operator panel station editor title.");
-    alert.informativeText = NSLocalizedString(@"Set name and number for each of the 16 station keys.", @"Operator panel station editor text.");
-    [alert addButtonWithTitle:NSLocalizedString(@"Save", @"Save button.")];
-    [alert addButtonWithTitle:NSLocalizedString(@"Cancel", @"Cancel button.")];
-    [alert addButtonWithTitle:NSLocalizedString(@"Clear All", @"Clear all button.")];
-    [alert addButtonWithTitle:NSLocalizedString(@"Import XML…", @"Import station keys from XML button.")];
-    alert.accessoryView = scrollView;
+    NSWindow *sheet = [[NSWindow alloc] initWithContentRect:NSMakeRect(0.0, 0.0, 680.0, 640.0)
+                                                  styleMask:(NSWindowStyleMaskTitled | NSWindowStyleMaskClosable)
+                                                    backing:NSBackingStoreBuffered
+                                                      defer:NO];
+    sheet.title = NSLocalizedString(@"Configure Station Keys", @"Operator panel station editor title.");
+    sheet.contentView = contentView;
+    sheet.releasedWhenClosed = NO;
 
-    [alert beginSheetModalForWindow:self.view.window completionHandler:^(NSModalResponse returnCode) {
-        if (returnCode == NSAlertFirstButtonReturn) {
-            NSMutableArray<NSDictionary<NSString *, NSString *> *> *updated = [[NSMutableArray alloc] initWithCapacity:kEmbeddedOperatorPanelStationCount];
-            for (NSInteger fieldIndex = 0; fieldIndex < kEmbeddedOperatorPanelStationCount; ++fieldIndex) {
-                NSString *name = [nameFields[fieldIndex].stringValue stringByTrimmingCharactersInSet:NSCharacterSet.whitespaceAndNewlineCharacterSet];
-                NSString *number = [numberFields[fieldIndex].stringValue stringByTrimmingCharactersInSet:NSCharacterSet.whitespaceAndNewlineCharacterSet];
-                [updated addObject:@{
-                    EmbeddedOperatorPanelStationNameKey: name ?: @"",
-                    EmbeddedOperatorPanelStationDestinationKey: number ?: @""
-                }];
-            }
-            self.stationKeys = [updated copy];
-            [self.defaults setObject:self.stationKeys forKey:EmbeddedOperatorPanelStationsKey];
-            [self refreshUI];
-        } else if (returnCode == NSAlertThirdButtonReturn) {
-            NSMutableArray<NSDictionary<NSString *, NSString *> *> *cleared = [[NSMutableArray alloc] initWithCapacity:kEmbeddedOperatorPanelStationCount];
-            for (NSInteger fieldIndex = 0; fieldIndex < kEmbeddedOperatorPanelStationCount; ++fieldIndex) {
-                [cleared addObject:@{
-                    EmbeddedOperatorPanelStationNameKey: @"",
-                    EmbeddedOperatorPanelStationDestinationKey: @""
-                }];
-            }
-            self.stationKeys = [cleared copy];
-            [self.defaults setObject:self.stationKeys forKey:EmbeddedOperatorPanelStationsKey];
-            [self refreshUI];
-        } else if (returnCode == NSAlertThirdButtonReturn + 1) {
-            [self importStationKeysFromXMLAndReopenConfiguration];
-        }
-    }];
+    self.stationConfigurationSheet = sheet;
+    self.stationConfigurationScrollView = scrollView;
+    self.stationConfigurationXMLSourceField = xmlSourceField;
+    [self refreshStationConfigurationEditorRows];
+    [self.view.window beginSheet:sheet completionHandler:nil];
 }
 
-- (void)importStationKeysFromXMLAndReopenConfiguration {
+- (void)saveStationConfigurationSheet:(id)sender {
+    self.stationKeys = [self stationEntriesFromConfigurationFields];
+    [self.defaults setObject:self.stationKeys forKey:EmbeddedOperatorPanelStationsKey];
+
+    NSString *xmlSource = [self.stationConfigurationXMLSourceField.stringValue stringByTrimmingCharactersInSet:NSCharacterSet.whitespaceAndNewlineCharacterSet];
+    if (xmlSource.length > 0) {
+        [self.defaults setObject:xmlSource forKey:EmbeddedOperatorPanelStationsXMLSourceKey];
+    } else {
+        [self.defaults removeObjectForKey:EmbeddedOperatorPanelStationsXMLSourceKey];
+    }
+
+    [self rebuildStationButtons];
+    [self refreshUI];
+    [self cancelStationConfigurationSheet:nil];
+}
+
+- (void)cancelStationConfigurationSheet:(id)sender {
+    if (self.stationConfigurationSheet != nil) {
+        [self.view.window endSheet:self.stationConfigurationSheet];
+        [self.stationConfigurationSheet orderOut:nil];
+    }
+    self.stationConfigurationSheet = nil;
+    self.stationConfigurationNameFields = nil;
+    self.stationConfigurationNumberFields = nil;
+    self.stationConfigurationXMLSourceField = nil;
+    self.stationConfigurationGridView = nil;
+    self.stationConfigurationScrollView = nil;
+}
+
+- (void)clearStationKeysInConfiguration:(id)sender {
+    for (NSTextField *field in self.stationConfigurationNameFields) {
+        field.stringValue = @"";
+    }
+    for (NSTextField *field in self.stationConfigurationNumberFields) {
+        field.stringValue = @"";
+    }
+}
+
+- (void)addStationKeyRowInConfiguration:(id)sender {
+    NSMutableArray<NSDictionary<NSString *, NSString *> *> *entries = [[self stationEntriesFromConfigurationFields] mutableCopy];
+    [entries addObject:[self emptyStationEntry]];
+    self.stationKeys = [entries copy];
+    [self refreshStationConfigurationEditorRows];
+}
+
+- (void)chooseStationKeysXMLFileFromConfiguration:(id)sender {
     NSOpenPanel *panel = [NSOpenPanel openPanel];
     if (@available(macOS 12.0, *)) {
         panel.allowedContentTypes = @[UTTypeXML];
@@ -923,30 +1252,62 @@ didStartElement:(NSString *)elementName
     panel.allowsMultipleSelection = NO;
     panel.canChooseDirectories = NO;
     panel.canChooseFiles = YES;
-    panel.prompt = NSLocalizedString(@"Import", @"Import button title.");
-    panel.message = NSLocalizedString(@"Choose an XML file for the station keys.", @"Station key XML import panel message.");
 
-    [panel beginSheetModalForWindow:self.view.window completionHandler:^(NSModalResponse result) {
-        if (result == NSModalResponseOK && panel.URL != nil) {
-            NSError *error = nil;
-            NSArray<NSDictionary<NSString *, NSString *> *> *imported = [self stationKeysImportedFromXMLURL:panel.URL error:&error];
-            if (imported.count > 0) {
-                self.stationKeys = imported;
-                [self.defaults setObject:self.stationKeys forKey:EmbeddedOperatorPanelStationsKey];
-                [self refreshUI];
-            } else if (error != nil) {
-                NSAlert *errorAlert = [[NSAlert alloc] init];
-                errorAlert.alertStyle = NSAlertStyleWarning;
-                errorAlert.messageText = NSLocalizedString(@"XML import failed", @"Station key import error title.");
-                errorAlert.informativeText = error.localizedDescription ?: NSLocalizedString(@"The XML file could not be imported.", @"Station key import generic error.");
-                [errorAlert beginSheetModalForWindow:self.view.window completionHandler:nil];
-            }
-        }
+    if ([panel runModal] == NSModalResponseOK && panel.URL != nil) {
+        self.stationConfigurationXMLSourceField.stringValue = panel.URL.path ?: panel.URL.absoluteString ?: @"";
+    }
+}
 
-        dispatch_async(dispatch_get_main_queue(), ^{
-            [self showStationConfiguration:nil];
-        });
-    }];
+- (NSURL *)stationKeysXMLURLFromSourceString:(NSString *)sourceString {
+    NSString *trimmed = [sourceString stringByTrimmingCharactersInSet:NSCharacterSet.whitespaceAndNewlineCharacterSet];
+    if (trimmed.length == 0) {
+        return nil;
+    }
+
+    NSString *expandedPath = [trimmed stringByExpandingTildeInPath];
+    if ([expandedPath hasPrefix:@"/"]) {
+        return [NSURL fileURLWithPath:expandedPath];
+    }
+
+    NSURL *url = [NSURL URLWithString:trimmed];
+    if (url.isFileURL && url.path.length > 0) {
+        return url;
+    }
+    if (url.scheme.length > 0) {
+        return url;
+    }
+
+    return [NSURL fileURLWithPath:expandedPath];
+}
+
+- (void)reloadStationKeysFromConfigurationXML:(id)sender {
+    NSURL *url = [self stationKeysXMLURLFromSourceString:self.stationConfigurationXMLSourceField.stringValue];
+    if (url == nil) {
+        NSAlert *alert = [[NSAlert alloc] init];
+        alert.alertStyle = NSAlertStyleWarning;
+        alert.messageText = NSLocalizedString(@"XML import failed", @"Station key import error title.");
+        alert.informativeText = NSLocalizedString(@"Please enter a valid XML URL or local XML file path.", @"Station key import missing source error.");
+        [alert beginSheetModalForWindow:self.stationConfigurationSheet completionHandler:nil];
+        return;
+    }
+
+    NSError *error = nil;
+    NSArray<NSDictionary<NSString *, NSString *> *> *imported = [self stationKeysImportedFromXMLURL:url error:&error];
+    if (imported.count == 0) {
+        NSAlert *alert = [[NSAlert alloc] init];
+        alert.alertStyle = NSAlertStyleWarning;
+        alert.messageText = NSLocalizedString(@"XML import failed", @"Station key import error title.");
+        alert.informativeText = error.localizedDescription ?: NSLocalizedString(@"The XML file could not be imported.", @"Station key import generic error.");
+        [alert beginSheetModalForWindow:self.stationConfigurationSheet completionHandler:nil];
+        return;
+    }
+
+    self.stationKeys = imported;
+    [self.defaults setObject:self.stationKeys forKey:EmbeddedOperatorPanelStationsKey];
+    [self.defaults setObject:self.stationConfigurationXMLSourceField.stringValue ?: @"" forKey:EmbeddedOperatorPanelStationsXMLSourceKey];
+    [self rebuildStationButtons];
+    [self refreshUI];
+    [self refreshStationConfigurationEditorRows];
 }
 
 - (NSArray<NSDictionary<NSString *, NSString *> *> *)stationKeysImportedFromXMLURL:(NSURL *)url
@@ -979,24 +1340,13 @@ didStartElement:(NSString *)elementName
         return @[];
     }
 
-    NSMutableArray<NSDictionary<NSString *, NSString *> *> *normalized = [[NSMutableArray alloc] initWithCapacity:kEmbeddedOperatorPanelStationCount];
+    NSMutableArray<NSDictionary<NSString *, NSString *> *> *normalized = [[NSMutableArray alloc] initWithCapacity:stations.count];
     for (NSDictionary<NSString *, NSString *> *station in stations) {
-        if (normalized.count >= kEmbeddedOperatorPanelStationCount) {
-            break;
-        }
-
         NSString *name = [station[EmbeddedOperatorPanelStationNameKey] isKindOfClass:[NSString class]] ? station[EmbeddedOperatorPanelStationNameKey] : @"";
         NSString *destination = [station[EmbeddedOperatorPanelStationDestinationKey] isKindOfClass:[NSString class]] ? station[EmbeddedOperatorPanelStationDestinationKey] : @"";
         [normalized addObject:@{
             EmbeddedOperatorPanelStationNameKey: [name stringByTrimmingCharactersInSet:NSCharacterSet.whitespaceAndNewlineCharacterSet] ?: @"",
             EmbeddedOperatorPanelStationDestinationKey: [destination stringByTrimmingCharactersInSet:NSCharacterSet.whitespaceAndNewlineCharacterSet] ?: @""
-        }];
-    }
-
-    while (normalized.count < kEmbeddedOperatorPanelStationCount) {
-        [normalized addObject:@{
-            EmbeddedOperatorPanelStationNameKey: @"",
-            EmbeddedOperatorPanelStationDestinationKey: @""
         }];
     }
 
@@ -1017,14 +1367,13 @@ didStartElement:(NSString *)elementName
             EmbeddedOperatorPanelStationDestinationKey: destination
         }];
     }
-    while (result.count < kEmbeddedOperatorPanelStationCount) {
-        [result addObject:@{
-            EmbeddedOperatorPanelStationNameKey: @"",
-            EmbeddedOperatorPanelStationDestinationKey: @""
-        }];
-    }
-    if (result.count > kEmbeddedOperatorPanelStationCount) {
-        result = [[result subarrayWithRange:NSMakeRange(0, kEmbeddedOperatorPanelStationCount)] mutableCopy];
+    if (result.count == 0) {
+        while (result.count < kEmbeddedOperatorPanelStationCount) {
+            [result addObject:@{
+                EmbeddedOperatorPanelStationNameKey: @"",
+                EmbeddedOperatorPanelStationDestinationKey: @""
+            }];
+        }
     }
     self.stationKeys = [result copy];
 }

@@ -212,9 +212,11 @@ NSString * const kPhoneLabel = @"PhoneLabel";
 @interface ActiveAccountViewController ()
 
 @property(nonatomic) NSPopover *dialPadPopover;
+@property(nonatomic, strong) NSTextField *visibleCallDestinationField;
 
 - (id)tokenField:(NSTokenField *)tokenField representedObjectForEditingString:(NSString *)editingString;
 - (NSString *)tokenField:(NSTokenField *)tokenField editingStringForRepresentedObject:(id)representedObject;
+- (NSArray *)resolvedCallDestinations;
 - (NSString *)currentDialString;
 - (void)applyDialString:(NSString *)dialString;
 
@@ -223,12 +225,17 @@ NSString * const kPhoneLabel = @"PhoneLabel";
 @implementation ActiveAccountViewController
 
 - (AKSIPURI *)callDestinationURI {
-    NSDictionary *callDestinationDict = [[self callDestinationField] objectValue][0][[self callDestinationURIIndex]];
+    NSArray *resolvedCallDestinations = [self resolvedCallDestinations];
+    if (resolvedCallDestinations.count == 0 || self.callDestinationURIIndex >= resolvedCallDestinations.count) {
+        return nil;
+    }
+    
+    NSDictionary *callDestinationDict = resolvedCallDestinations[self.callDestinationURIIndex];
     
     AKSIPURI *uri = [callDestinationDict[kURI] copy];
     
     // Displayed name is stored in the first URI only.
-    AKSIPURI *firstURI = [[self callDestinationField] objectValue][0][0][kURI];
+    AKSIPURI *firstURI = resolvedCallDestinations[0][kURI];
     
     [uri setDisplayName:[firstURI displayName]];
     
@@ -240,11 +247,11 @@ NSString * const kPhoneLabel = @"PhoneLabel";
 }
 
 - (BOOL)allowsCallDestinationInput {
-    return !self.callDestinationField.isHidden;
+    return !self.visibleCallDestinationField.isHidden;
 }
 
 - (NSView *)keyView {
-    return self.callDestinationField;
+    return self.visibleCallDestinationField ?: self.callDestinationField;
 }
 
 - (instancetype)initWithAccountController:(AccountController *)accountController {
@@ -265,6 +272,36 @@ NSString * const kPhoneLabel = @"PhoneLabel";
     
     [[self callDestinationField] setCompletionDelay:0.4];
 
+    if (self.visibleCallDestinationField == nil) {
+        NSTextField *replacementField = [[NSTextField alloc] initWithFrame:self.callDestinationField.frame];
+        replacementField.translatesAutoresizingMaskIntoConstraints = NO;
+        replacementField.font = self.callDestinationField.font;
+        replacementField.alignment = self.callDestinationField.alignment;
+        replacementField.bezelStyle = NSTextFieldRoundedBezel;
+        replacementField.bordered = self.callDestinationField.isBordered;
+        replacementField.bezeled = self.callDestinationField.isBezeled;
+        replacementField.drawsBackground = self.callDestinationField.drawsBackground;
+        replacementField.backgroundColor = self.callDestinationField.backgroundColor;
+        replacementField.textColor = self.callDestinationField.textColor;
+        replacementField.focusRingType = self.callDestinationField.focusRingType;
+        replacementField.lineBreakMode = NSLineBreakByClipping;
+        replacementField.usesSingleLineMode = YES;
+        replacementField.target = self;
+        replacementField.action = @selector(makeCall:);
+
+        NSView *containerView = self.callDestinationField.superview;
+        [containerView addSubview:replacementField positioned:NSWindowAbove relativeTo:self.callDestinationField];
+        [NSLayoutConstraint activateConstraints:@[
+            [replacementField.leadingAnchor constraintEqualToAnchor:self.callDestinationField.leadingAnchor],
+            [replacementField.trailingAnchor constraintEqualToAnchor:self.callDestinationField.trailingAnchor],
+            [replacementField.topAnchor constraintEqualToAnchor:self.callDestinationField.topAnchor],
+            [replacementField.bottomAnchor constraintEqualToAnchor:self.callDestinationField.bottomAnchor]
+        ]];
+
+        self.callDestinationField.hidden = YES;
+        self.visibleCallDestinationField = replacementField;
+    }
+
     if (self.dialPadButton.image == nil) {
         NSImage *image = [NSImage imageWithSystemSymbolName:@"circle.grid.3x3.fill"
                                       accessibilityDescription:NSLocalizedString(@"Dial Pad", @"Dial pad button.")];
@@ -281,7 +318,12 @@ NSString * const kPhoneLabel = @"PhoneLabel";
         return;
     }
     
-    NSDictionary *callDestinationDict = [[self callDestinationField] objectValue][0][[self callDestinationURIIndex]];
+    NSArray *resolvedCallDestinations = [self resolvedCallDestinations];
+    if (resolvedCallDestinations.count == 0 || self.callDestinationURIIndex >= resolvedCallDestinations.count) {
+        return;
+    }
+    
+    NSDictionary *callDestinationDict = resolvedCallDestinations[self.callDestinationURIIndex];
     NSString *phoneLabel = callDestinationDict[kPhoneLabel];
     
     AKSIPURI *uri = [self callDestinationURI];
@@ -324,10 +366,7 @@ NSString * const kPhoneLabel = @"PhoneLabel";
 }
 
 - (BOOL)canMakeCall {
-    return [self.callDestinationField.objectValue count] > 0 &&
-    [self.callDestinationField.objectValue isKindOfClass:[NSArray class]] &&
-    [self.callDestinationField.objectValue[0] isKindOfClass:[NSArray class]] &&
-    [self.callDestinationField.objectValue[0][self.callDestinationURIIndex] isKindOfClass:[NSDictionary class]];
+    return [self resolvedCallDestinations].count > 0;
 }
 
 - (IBAction)changeCallDestinationURIIndex:(id)sender {
@@ -336,16 +375,16 @@ NSString * const kPhoneLabel = @"PhoneLabel";
 
 - (void)allowCallDestinationInput {
     [NSAnimationContext runAnimationGroup:^(NSAnimationContext * _Nonnull context) {
-        self.callDestinationField.animator.hidden = NO;
+        self.visibleCallDestinationField.animator.hidden = NO;
     } completionHandler:^{
-        if (self.callDestinationField.acceptsFirstResponder) {
-            [self.view.window makeFirstResponder:self.callDestinationField];
+        if (self.visibleCallDestinationField.acceptsFirstResponder) {
+            [self.view.window makeFirstResponder:self.visibleCallDestinationField];
         }
     }];
 }
 
 - (void)disallowCallDestinationInput {
-    self.callDestinationField.hidden = YES;
+    self.visibleCallDestinationField.hidden = YES;
 }
 
 - (void)updateNextKeyView:(NSView *)view {
@@ -353,7 +392,7 @@ NSString * const kPhoneLabel = @"PhoneLabel";
 }
 
 - (NSString *)currentDialString {
-    NSString *stringValue = self.callDestinationField.stringValue ?: @"";
+    NSString *stringValue = self.visibleCallDestinationField.stringValue ?: @"";
     if (stringValue.length > 0) {
         return stringValue;
     }
@@ -365,16 +404,29 @@ NSString * const kPhoneLabel = @"PhoneLabel";
     return @"";
 }
 
-- (void)applyDialString:(NSString *)dialString {
-    id representedObject = [self tokenField:self.callDestinationField representedObjectForEditingString:dialString];
-    if (representedObject != nil) {
-        self.callDestinationField.objectValue = @[representedObject];
-        self.callDestinationField.tokenStyle = NSTokenStyleRounded;
-    } else {
-        self.callDestinationField.objectValue = @[];
-        self.callDestinationField.stringValue = dialString ?: @"";
-        self.callDestinationField.tokenStyle = NSTokenStyleNone;
+- (NSArray *)resolvedCallDestinations {
+    NSString *dialString = self.visibleCallDestinationField.stringValue ?: @"";
+    if (dialString.length == 0) {
+        return @[];
     }
+    
+    id representedObject = [self tokenField:self.callDestinationField representedObjectForEditingString:dialString];
+    if ([representedObject isKindOfClass:[NSArray class]]) {
+        return representedObject;
+    }
+    
+    return @[];
+}
+
+- (void)applyDialString:(NSString *)dialString {
+    self.callDestinationField.objectValue = @[];
+    self.callDestinationField.stringValue = @"";
+    self.callDestinationField.tokenStyle = NSTokenStyleNone;
+    self.visibleCallDestinationField.stringValue = dialString ?: @"";
+}
+
+- (void)setCallDestinationString:(NSString *)destination {
+    [self applyDialString:destination];
 }
 
 
@@ -384,8 +436,7 @@ NSString * const kPhoneLabel = @"PhoneLabel";
 // Returns completions based on the Address Book search.
 // A completion string can be in one of two formats: Display Name <1234567> for person or company name searches,
 // 1234567 (Display Name) for the phone number searches.
-// Sets tokenField sytle to NSTokenStyleRounded if the substring is found in the Address Book; otherwise, sets
-// tokenField sytle to NSPlainTextTokenStyle.
+// Returns possible completions without mutating the token field's layout state during editing.
 - (NSArray *)tokenField:(NSTokenField *)tokenField
         completionsForSubstring:(NSString *)substring
         indexOfToken:(NSInteger)tokenIndex
@@ -734,13 +785,6 @@ NSString * const kPhoneLabel = @"PhoneLabel";
             NSString *newFirstElement = [completions[0] stringByReplacingCharactersInRange:replaceRange withString:substring];
             completions[0] = newFirstElement;
         }
-    }
-    
-    // Set appropriate token style depending on the search success.
-    if ([completions count] > 0) {
-        [tokenField setTokenStyle:NSTokenStyleRounded];
-    } else {
-        [tokenField setTokenStyle:NSTokenStyleNone];
     }
     
     return [completions copy];

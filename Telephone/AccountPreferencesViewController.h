@@ -54,7 +54,6 @@
 @property(nonatomic, weak) IBOutlet NSButton *IPv4Button;
 @property(nonatomic, weak) IBOutlet NSButton *IPv6Button;
 @property(nonatomic, weak) IBOutlet NSButton *updateIPAddressCheckBox;
-
 // Raises |Add Account| sheet.
 - (IBAction)showAddAccountSheet:(id)sender;
 

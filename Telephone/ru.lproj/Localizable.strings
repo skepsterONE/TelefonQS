@@ -281,6 +281,17 @@
 
 /* Call history drawer title and toggle. */
 "Call History" = "История звонков";
+"Station Keys XML:" = "XML клавиш станции:";
+"https://example.com/station-keys.xml" = "https://example.com/station-keys.xml";
+"Reload XML" = "Перезагрузить XML";
+"XML loaded. Station keys updated." = "XML загружен. Клавиши станции обновлены.";
+"No XML source configured." = "Источник XML не настроен.";
+"Loading XML source…" = "Загрузка XML-источника…";
+"The XML source could not be loaded." = "Не удалось загрузить XML-источник.";
+"XML loaded. No changes detected." = "XML загружен. Изменений нет.";
+"Set name and number for each of the %ld station keys." = "Задайте имя и номер для каждой из %ld клавиш станции.";
+"Choose File…" = "Выбрать файл…";
+"Choose" = "Выбрать";
 
 /* Hide drawer button. */
 "Hide" = "Скрыть";

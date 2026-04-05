@@ -287,6 +287,17 @@
 "XML import failed" = "XML import failed";
 "The XML file could not be imported." = "The XML file could not be imported.";
 "No station keys were found in the XML file." = "No station keys were found in the XML file.";
+"Station Keys XML:" = "Station Keys XML:";
+"https://example.com/station-keys.xml" = "https://example.com/station-keys.xml";
+"Reload XML" = "Reload XML";
+"XML loaded. Station keys updated." = "XML loaded. Station keys updated.";
+"No XML source configured." = "No XML source configured.";
+"Loading XML source…" = "Loading XML source…";
+"The XML source could not be loaded." = "The XML source could not be loaded.";
+"XML loaded. No changes detected." = "XML loaded. No changes detected.";
+"Set name and number for each of the %ld station keys." = "Set name and number for each of the %ld station keys.";
+"Choose File…" = "Choose File…";
+"Choose" = "Choose";
 
 /* Hide drawer button. */
 "Hide" = "Hide";

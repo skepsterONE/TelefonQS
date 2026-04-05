@@ -287,6 +287,17 @@
 "XML import failed" = "XML-Import fehlgeschlagen";
 "The XML file could not be imported." = "Die XML-Datei konnte nicht importiert werden.";
 "No station keys were found in the XML file." = "In der XML-Datei wurden keine Stationstasten gefunden.";
+"Station Keys XML:" = "Stationstasten-XML:";
+"https://example.com/station-keys.xml" = "https://example.com/station-keys.xml";
+"Reload XML" = "XML neu laden";
+"XML loaded. Station keys updated." = "XML geladen. Stationstasten wurden aktualisiert.";
+"No XML source configured." = "Keine XML-Quelle konfiguriert.";
+"Loading XML source…" = "XML-Quelle wird geladen…";
+"The XML source could not be loaded." = "Die XML-Quelle konnte nicht geladen werden.";
+"XML loaded. No changes detected." = "XML geladen. Keine Aenderungen erkannt.";
+"Set name and number for each of the %ld station keys." = "Legen Sie fuer jede der %ld Stationstasten einen Namen und eine Nummer fest.";
+"Choose File…" = "Datei waehlen…";
+"Choose" = "Waehlen";
 
 /* Hide drawer button. */
 "Hide" = "Ausblenden";

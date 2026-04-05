@@ -61,5 +61,6 @@ extern NSString * const kPhoneLabel;
 - (void)disallowCallDestinationInput;
 
 - (void)updateNextKeyView:(NSView *)view;
+- (void)setCallDestinationString:(NSString *)destination;
 
 @end

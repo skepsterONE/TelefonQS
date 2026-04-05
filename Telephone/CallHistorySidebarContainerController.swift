@@ -28,8 +28,12 @@ final class CallHistorySidebarContainerController: NSViewController {
 
     override func loadView() {
         view = NSView(frame: .zero)
+        view.wantsLayer = true
+        view.layer?.backgroundColor = NSColor.clear.cgColor
         addChild(hostingController)
         hostingController.view.translatesAutoresizingMaskIntoConstraints = false
+        hostingController.view.wantsLayer = true
+        hostingController.view.layer?.backgroundColor = NSColor.clear.cgColor
         view.addSubview(hostingController.view)
         NSLayoutConstraint.activate([
             hostingController.view.topAnchor.constraint(equalTo: view.topAnchor),
@@ -88,7 +92,10 @@ private struct CallHistorySidebarRootView: View {
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-        .background(.regularMaterial)
+        .background {
+            Rectangle()
+                .fill(Color(nsColor: NSColor.windowBackgroundColor.withAlphaComponent(0.5)))
+        }
         .overlay(alignment: .trailing) {
             Rectangle()
                 .fill(Color.white.opacity(0.08))

@@ -92,7 +92,11 @@ NS_ASSUME_NONNULL_END
 }
 
 - (void)updateAvailableSounds {
-    NSArray *libraryPaths = NSSearchPathForDirectoriesInDomains(NSLibraryDirectory, NSAllDomainsMask, YES);
+    NSMutableArray<NSString *> *libraryPaths = [[NSSearchPathForDirectoriesInDomains(NSLibraryDirectory, NSUserDomainMask, YES) mutableCopy] ?: @[] mutableCopy];
+    NSString *bundleResourcePath = NSBundle.mainBundle.resourcePath;
+    if (bundleResourcePath.length > 0) {
+        [libraryPaths addObject:bundleResourcePath];
+    }
     if ([libraryPaths count] <= 0) {
         return;
     }

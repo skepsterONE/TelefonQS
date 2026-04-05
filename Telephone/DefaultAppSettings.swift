@@ -64,6 +64,7 @@ private func makeDefaults(for localization: String) -> [String: Any] {
         UserDefaultsKeys.lockCodec: false,
         UserDefaultsKeys.logLevel: 3,
         UserDefaultsKeys.operatorPanelStations: [],
+        UserDefaultsKeys.operatorPanelStationsXMLURL: "",
         UserDefaultsKeys.outboundProxyHost: "",
         UserDefaultsKeys.outboundProxyPort: 0,
         UserDefaultsKeys.stunServerHost: "",
