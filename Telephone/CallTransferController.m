@@ -128,8 +128,9 @@
 }
 
 - (void)makeCallDestinationFieldFirstResponder {
-    if ([self.activeAccountTransferViewController.callDestinationField acceptsFirstResponder]) {
-        [self.window makeFirstResponder:self.activeAccountTransferViewController.callDestinationField];
+    NSView *destinationInputView = self.activeAccountTransferViewController.keyView;
+    if ([destinationInputView acceptsFirstResponder]) {
+        [self.window makeFirstResponder:destinationInputView];
     }
 }
 

@@ -5,6 +5,7 @@
 #import "AKSIPURI.h"
 
 #import "AccountController.h"
+#import "ActiveCallViewController.h"
 #import "CallController.h"
 #import "CallTransferController.h"
 
@@ -18,6 +19,7 @@ static NSString * const EmbeddedOperatorPanelStationsKey = @"OperatorPanelStatio
 static NSString * const EmbeddedOperatorPanelStationsXMLSourceKey = @"OperatorPanelStationsXMLURL";
 static NSString * const EmbeddedOperatorPanelStationNameKey = @"name";
 static NSString * const EmbeddedOperatorPanelStationDestinationKey = @"destination";
+static NSString * const EmbeddedOperatorPanelStationShowInTransferKey = @"showInTransfer";
 
 static BOOL EmbeddedOperatorPanelUsesDarkAppearance(NSAppearance *appearance) {
     if (@available(macOS 10.14, *)) {
@@ -450,7 +452,7 @@ didStartElement:(NSString *)elementName
 
 @end
 
-@interface MainWindowOperatorPanelViewController ()
+@interface MainWindowOperatorPanelViewController () <NSTextFieldDelegate>
 
 @property(nonatomic, readonly) AccountController *accountController;
 @property(nonatomic, readonly) NSUserDefaults *defaults;
@@ -460,6 +462,13 @@ didStartElement:(NSString *)elementName
 
 @property(nonatomic) NSTextField *callTitleField;
 @property(nonatomic) NSTextField *callStatusField;
+@property(nonatomic) NSStackView *transferContainerStack;
+@property(nonatomic) NSTextField *transferHeaderField;
+@property(nonatomic) NSTextField *transferStatusField;
+@property(nonatomic) NSTextField *transferDestinationField;
+@property(nonatomic) NSPopUpButton *transferStationPopupButton;
+@property(nonatomic) NSButton *transferCloseButton;
+@property(nonatomic) NSButton *transferSubmitButton;
 @property(nonatomic) NSButton *muteButton;
 @property(nonatomic) NSButton *holdButton;
 @property(nonatomic) NSButton *transferButton;
@@ -471,9 +480,12 @@ didStartElement:(NSString *)elementName
 @property(nonatomic) NSWindow *stationConfigurationSheet;
 @property(nonatomic) NSMutableArray<NSTextField *> *stationConfigurationNameFields;
 @property(nonatomic) NSMutableArray<NSTextField *> *stationConfigurationNumberFields;
+@property(nonatomic) NSMutableArray<NSButton *> *stationConfigurationTransferCheckboxes;
 @property(nonatomic) NSTextField *stationConfigurationXMLSourceField;
 @property(nonatomic) NSGridView *stationConfigurationGridView;
 @property(nonatomic) NSScrollView *stationConfigurationScrollView;
+@property(nonatomic, weak) CallController *embeddedTransferSourceController;
+@property(nonatomic, strong) CallTransferController *embeddedTransferController;
 
 @end
 
@@ -556,14 +568,18 @@ didStartElement:(NSString *)elementName
     return stack;
 }
 
-- (NSArray<NSDictionary<NSString *, NSString *> *> *)stationEntriesFromConfigurationFields {
-    NSMutableArray<NSDictionary<NSString *, NSString *> *> *entries = [[NSMutableArray alloc] initWithCapacity:self.stationConfigurationNameFields.count];
+- (NSArray<NSDictionary<NSString *, id> *> *)stationEntriesFromConfigurationFields {
+    NSMutableArray<NSDictionary<NSString *, id> *> *entries = [[NSMutableArray alloc] initWithCapacity:self.stationConfigurationNameFields.count];
     for (NSInteger index = 0; index < self.stationConfigurationNameFields.count; ++index) {
         NSString *name = [self.stationConfigurationNameFields[index].stringValue stringByTrimmingCharactersInSet:NSCharacterSet.whitespaceAndNewlineCharacterSet];
         NSString *number = [self.stationConfigurationNumberFields[index].stringValue stringByTrimmingCharactersInSet:NSCharacterSet.whitespaceAndNewlineCharacterSet];
+        BOOL showInTransfer = (index < self.stationConfigurationTransferCheckboxes.count)
+            ? (self.stationConfigurationTransferCheckboxes[index].state == NSControlStateValueOn)
+            : YES;
         [entries addObject:@{
             EmbeddedOperatorPanelStationNameKey: name ?: @"",
-            EmbeddedOperatorPanelStationDestinationKey: number ?: @""
+            EmbeddedOperatorPanelStationDestinationKey: number ?: @"",
+            EmbeddedOperatorPanelStationShowInTransferKey: @(showInTransfer)
         }];
     }
     return [entries copy];
@@ -573,10 +589,11 @@ didStartElement:(NSString *)elementName
     return MAX(1, self.stationKeys.count);
 }
 
-- (NSDictionary<NSString *, NSString *> *)emptyStationEntry {
+- (NSDictionary<NSString *, id> *)emptyStationEntry {
     return @{
         EmbeddedOperatorPanelStationNameKey: @"",
-        EmbeddedOperatorPanelStationDestinationKey: @""
+        EmbeddedOperatorPanelStationDestinationKey: @"",
+        EmbeddedOperatorPanelStationShowInTransferKey: @YES
     };
 }
 
@@ -588,16 +605,18 @@ didStartElement:(NSString *)elementName
     NSInteger stationCount = [self effectiveStationCount];
     NSMutableArray<NSTextField *> *nameFields = [[NSMutableArray alloc] initWithCapacity:stationCount];
     NSMutableArray<NSTextField *> *numberFields = [[NSMutableArray alloc] initWithCapacity:stationCount];
+    NSMutableArray<NSButton *> *transferCheckboxes = [[NSMutableArray alloc] initWithCapacity:stationCount];
     NSMutableArray<NSArray<NSView *> *> *rows = [[NSMutableArray alloc] initWithCapacity:(NSUInteger)stationCount + 1];
 
     [rows addObject:@[
         [NSTextField labelWithString:NSLocalizedString(@"Key", @"Operator panel station editor key column.")],
         [NSTextField labelWithString:NSLocalizedString(@"Name", @"Operator panel station editor name column.")],
-        [NSTextField labelWithString:NSLocalizedString(@"Number", @"Operator panel station editor number column.")]
+        [NSTextField labelWithString:NSLocalizedString(@"Number", @"Operator panel station editor number column.")],
+        [NSTextField labelWithString:NSLocalizedString(@"Im Weiterleiten", @"Operator panel transfer visibility column.")]
     ]];
 
     for (NSInteger index = 0; index < stationCount; ++index) {
-        NSDictionary<NSString *, NSString *> *slot = self.stationKeys[index];
+        NSDictionary<NSString *, id> *slot = self.stationKeys[index];
 
         NSTextField *indexLabel = [NSTextField labelWithString:[NSString stringWithFormat:@"%ld", index + 1]];
         NSTextField *nameField = [[NSTextField alloc] initWithFrame:NSMakeRect(0.0, 0.0, 250.0, 24.0)];
@@ -610,9 +629,16 @@ didStartElement:(NSString *)elementName
         numberField.stringValue = slot[EmbeddedOperatorPanelStationDestinationKey] ?: @"";
         [numberField.widthAnchor constraintGreaterThanOrEqualToConstant:160.0].active = YES;
 
+        NSButton *transferCheckbox = [NSButton checkboxWithTitle:@"" target:nil action:nil];
+        transferCheckbox.state = [slot[EmbeddedOperatorPanelStationShowInTransferKey] respondsToSelector:@selector(boolValue)] &&
+            ![slot[EmbeddedOperatorPanelStationShowInTransferKey] boolValue]
+            ? NSControlStateValueOff
+            : NSControlStateValueOn;
+
         [nameFields addObject:nameField];
         [numberFields addObject:numberField];
-        [rows addObject:@[indexLabel, nameField, numberField]];
+        [transferCheckboxes addObject:transferCheckbox];
+        [rows addObject:@[indexLabel, nameField, numberField, transferCheckbox]];
     }
 
     NSGridView *gridView = [NSGridView gridViewWithViews:rows];
@@ -620,7 +646,7 @@ didStartElement:(NSString *)elementName
     gridView.columnSpacing = 10.0;
     self.stationConfigurationGridView = gridView;
 
-    NSView *documentView = [[NSView alloc] initWithFrame:NSMakeRect(0.0, 0.0, 620.0, 420.0)];
+    NSView *documentView = [[NSView alloc] initWithFrame:NSMakeRect(0.0, 0.0, 720.0, 420.0)];
     gridView.translatesAutoresizingMaskIntoConstraints = NO;
     [documentView addSubview:gridView];
     [NSLayoutConstraint activateConstraints:@[
@@ -632,11 +658,12 @@ didStartElement:(NSString *)elementName
 
     [documentView layoutSubtreeIfNeeded];
     NSSize fittingSize = gridView.fittingSize;
-    documentView.frame = NSMakeRect(0.0, 0.0, MAX(620.0, fittingSize.width), fittingSize.height);
+    documentView.frame = NSMakeRect(0.0, 0.0, MAX(720.0, fittingSize.width), fittingSize.height);
     self.stationConfigurationScrollView.documentView = documentView;
 
     self.stationConfigurationNameFields = nameFields;
     self.stationConfigurationNumberFields = numberFields;
+    self.stationConfigurationTransferCheckboxes = transferCheckboxes;
 }
 
 - (void)rebuildStationButtons {
@@ -684,6 +711,12 @@ didStartElement:(NSString *)elementName
     self.callStatusField = [self labelWithFont:[NSFont systemFontOfSize:13.0]];
     self.callTitleField.textColor = [NSColor colorWithWhite:0.98 alpha:0.96];
     self.callStatusField.textColor = [NSColor colorWithWhite:0.88 alpha:0.72];
+    self.transferHeaderField = [NSTextField labelWithString:NSLocalizedString(@"Transfer to:", @"Transfer dialog destination label.")];
+    self.transferHeaderField.font = [NSFont systemFontOfSize:12.0 weight:NSFontWeightSemibold];
+    self.transferHeaderField.alignment = NSTextAlignmentLeft;
+    self.transferStatusField = [NSTextField labelWithString:@""];
+    self.transferStatusField.font = [NSFont systemFontOfSize:12.0];
+    self.transferStatusField.alignment = NSTextAlignmentLeft;
 
     NSStackView *headerStack = [[NSStackView alloc] init];
     headerStack.orientation = NSUserInterfaceLayoutOrientationVertical;
@@ -733,6 +766,67 @@ didStartElement:(NSString *)elementName
     [muteHoldRow.widthAnchor constraintEqualToConstant:kEmbeddedOperatorPanelContentWidth].active = YES;
     [transferRecallRow.widthAnchor constraintEqualToConstant:kEmbeddedOperatorPanelContentWidth].active = YES;
 
+    NSTextField *transferDestinationField = [[NSTextField alloc] initWithFrame:NSMakeRect(0.0, 0.0, 230.0, 24.0)];
+    transferDestinationField.translatesAutoresizingMaskIntoConstraints = NO;
+    transferDestinationField.placeholderString = NSLocalizedString(@"Transfer to:", @"Transfer dialog destination label.");
+    transferDestinationField.delegate = self;
+    transferDestinationField.target = self;
+    transferDestinationField.action = @selector(submitEmbeddedTransfer:);
+    [transferDestinationField.widthAnchor constraintGreaterThanOrEqualToConstant:230.0].active = YES;
+    self.transferDestinationField = transferDestinationField;
+
+    NSPopUpButton *transferPopupButton = [[NSPopUpButton alloc] initWithFrame:NSZeroRect pullsDown:NO];
+    transferPopupButton.translatesAutoresizingMaskIntoConstraints = NO;
+    transferPopupButton.target = self;
+    transferPopupButton.action = @selector(selectEmbeddedTransferStation:);
+    [transferPopupButton.widthAnchor constraintEqualToConstant:128.0].active = YES;
+    self.transferStationPopupButton = transferPopupButton;
+
+    NSStackView *transferInputRow = [[NSStackView alloc] init];
+    transferInputRow.orientation = NSUserInterfaceLayoutOrientationHorizontal;
+    transferInputRow.spacing = 8.0;
+    transferInputRow.alignment = NSLayoutAttributeCenterY;
+    transferInputRow.translatesAutoresizingMaskIntoConstraints = NO;
+    [transferInputRow addArrangedSubview:transferDestinationField];
+    [transferInputRow addArrangedSubview:transferPopupButton];
+
+    NSButton *transferCloseButton = [NSButton buttonWithTitle:NSLocalizedString(@"Close", @"Close button.")
+                                                       target:self
+                                                       action:@selector(closeEmbeddedTransfer:)];
+    transferCloseButton.bezelStyle = NSBezelStyleRounded;
+    self.transferCloseButton = transferCloseButton;
+
+    NSButton *transferSubmitButton = [NSButton buttonWithTitle:NSLocalizedString(@"Call", @"Call button title in transfer sheet.")
+                                                        target:self
+                                                        action:@selector(submitEmbeddedTransfer:)];
+    transferSubmitButton.bezelStyle = NSBezelStyleRounded;
+    self.transferSubmitButton = transferSubmitButton;
+
+    NSStackView *transferButtonRow = [[NSStackView alloc] init];
+    transferButtonRow.orientation = NSUserInterfaceLayoutOrientationHorizontal;
+    transferButtonRow.spacing = 8.0;
+    transferButtonRow.alignment = NSLayoutAttributeCenterY;
+    transferButtonRow.distribution = NSStackViewDistributionFillEqually;
+    transferButtonRow.translatesAutoresizingMaskIntoConstraints = NO;
+    [transferButtonRow addArrangedSubview:transferCloseButton];
+    [transferButtonRow addArrangedSubview:transferSubmitButton];
+
+    NSStackView *transferContainer = [[NSStackView alloc] init];
+    transferContainer.orientation = NSUserInterfaceLayoutOrientationVertical;
+    transferContainer.spacing = 8.0;
+    transferContainer.edgeInsets = NSEdgeInsetsMake(10.0, 10.0, 10.0, 10.0);
+    transferContainer.alignment = NSLayoutAttributeLeading;
+    transferContainer.translatesAutoresizingMaskIntoConstraints = NO;
+    transferContainer.wantsLayer = YES;
+    transferContainer.layer.cornerRadius = 12.0;
+    transferContainer.hidden = YES;
+    [transferContainer addArrangedSubview:self.transferHeaderField];
+    [transferContainer addArrangedSubview:self.transferStatusField];
+    [transferContainer addArrangedSubview:transferInputRow];
+    [transferContainer addArrangedSubview:transferButtonRow];
+    [transferContainer.widthAnchor constraintEqualToConstant:kEmbeddedOperatorPanelContentWidth].active = YES;
+    self.transferContainerStack = transferContainer;
+
     NSButton *configureStationsButton = [NSButton buttonWithTitle:NSLocalizedString(@"Configure Station Keys", @"Operator panel configure station keys button.")
                                                           target:self
                                                           action:@selector(showStationConfiguration:)];
@@ -754,6 +848,7 @@ didStartElement:(NSString *)elementName
     contentStack.translatesAutoresizingMaskIntoConstraints = NO;
     [contentStack addArrangedSubview:headerStack];
     [contentStack addArrangedSubview:actionsStack];
+    [contentStack addArrangedSubview:self.transferContainerStack];
     [contentStack addArrangedSubview:configureStationsButton];
     [contentStack addArrangedSubview:self.stationsStack];
     contentStack.alignment = NSLayoutAttributeCenterX;
@@ -775,6 +870,9 @@ didStartElement:(NSString *)elementName
         [contentStack.trailingAnchor constraintLessThanOrEqualToAnchor:documentView.trailingAnchor constant:-8.0],
         [contentStack.bottomAnchor constraintLessThanOrEqualToAnchor:documentView.bottomAnchor constant:-8.0]
     ]];
+
+    [self refreshEmbeddedTransferPopupButton];
+    [self updateEmbeddedTransferUI];
 }
 
 - (void)observeCallNotifications {
@@ -909,6 +1007,8 @@ didStartElement:(NSString *)elementName
     [(EmbeddedOperatorPanelActionButton *)self.hangUpButton applyEmbeddedStyle];
 
     [self refreshStationButtons];
+    [self refreshEmbeddedTransferLifecycle];
+    [self updateEmbeddedTransferUI];
 }
 
 - (void)applyCurrentAppearance {
@@ -922,6 +1022,19 @@ didStartElement:(NSString *)elementName
     self.callStatusField.textColor = darkAppearance
         ? [NSColor colorWithWhite:0.88 alpha:0.72]
         : [NSColor colorWithSRGBRed:0.49 green:0.52 blue:0.60 alpha:0.82];
+    self.transferHeaderField.textColor = darkAppearance
+        ? [NSColor colorWithWhite:0.95 alpha:0.92]
+        : [NSColor colorWithSRGBRed:0.23 green:0.25 blue:0.32 alpha:1.0];
+    self.transferStatusField.textColor = darkAppearance
+        ? [NSColor colorWithWhite:0.84 alpha:0.68]
+        : [NSColor colorWithSRGBRed:0.47 green:0.50 blue:0.58 alpha:0.88];
+    self.transferContainerStack.layer.backgroundColor = (darkAppearance
+                                                         ? [NSColor colorWithSRGBRed:0.16 green:0.17 blue:0.23 alpha:0.92]
+                                                         : [NSColor colorWithSRGBRed:0.96 green:0.97 blue:0.99 alpha:0.98]).CGColor;
+    self.transferContainerStack.layer.borderColor = (darkAppearance
+                                                     ? [NSColor colorWithWhite:1.0 alpha:0.08]
+                                                     : [NSColor colorWithSRGBRed:0.84 green:0.87 blue:0.92 alpha:1.0]).CGColor;
+    self.transferContainerStack.layer.borderWidth = 1.0;
 
     [(EmbeddedOperatorPanelActionButton *)self.muteButton applyEmbeddedStyle];
     [(EmbeddedOperatorPanelActionButton *)self.holdButton applyEmbeddedStyle];
@@ -987,12 +1100,9 @@ didStartElement:(NSString *)elementName
         return;
     }
 
-    if (!controller.isCallOnHold) {
-        [controller toggleCallHold];
-    }
-
-    CallTransferController *transferController = controller.callTransferController;
-    [self.view.window beginSheet:transferController.window completionHandler:nil];
+    [self dismissEmbeddedTransferRestoringHold:NO];
+    [[controller activeCallViewController] showCallTransferSheet:sender];
+    [controller.activeCallViewController.view.window makeKeyAndOrderFront:nil];
 }
 
 - (void)recall:(id)sender {
@@ -1004,6 +1114,7 @@ didStartElement:(NSString *)elementName
 }
 
 - (void)hangUp:(id)sender {
+    [self dismissEmbeddedTransferRestoringHold:NO];
     [[self currentCallController] hangUpCall];
 }
 
@@ -1056,23 +1167,250 @@ didStartElement:(NSString *)elementName
     }
 }
 
+- (void)refreshEmbeddedTransferPopupButton {
+    [self.transferStationPopupButton removeAllItems];
+    [self.transferStationPopupButton addItemWithTitle:NSLocalizedString(@"Person", @"Transfer dialog station key popup placeholder.")];
+    for (NSDictionary<NSString *, id> *station in self.stationKeys) {
+        NSString *destination = station[EmbeddedOperatorPanelStationDestinationKey];
+        BOOL showInTransfer = ![station[EmbeddedOperatorPanelStationShowInTransferKey] respondsToSelector:@selector(boolValue)] ||
+            [station[EmbeddedOperatorPanelStationShowInTransferKey] boolValue];
+        if (!showInTransfer) {
+            continue;
+        }
+        if (destination.length == 0) {
+            continue;
+        }
+        NSString *name = station[EmbeddedOperatorPanelStationNameKey];
+        NSString *title = name.length > 0 ? [NSString stringWithFormat:@"%@ (%@)", name, destination] : destination;
+        [self.transferStationPopupButton addItemWithTitle:title];
+    }
+    self.transferStationPopupButton.enabled = self.transferStationPopupButton.numberOfItems > 1;
+    [self.transferStationPopupButton selectItemAtIndex:0];
+}
+
+- (NSDictionary<NSString *, NSString *> *)stationEntryMatchingTransferInput:(NSString *)input {
+    NSString *trimmed = [input stringByTrimmingCharactersInSet:NSCharacterSet.whitespaceAndNewlineCharacterSet];
+    if (trimmed.length == 0) {
+        return nil;
+    }
+
+    NSString *lowercaseTrimmed = trimmed.lowercaseString;
+    for (NSDictionary<NSString *, id> *station in self.stationKeys) {
+        NSString *name = station[EmbeddedOperatorPanelStationNameKey] ?: @"";
+        NSString *destination = station[EmbeddedOperatorPanelStationDestinationKey] ?: @"";
+        BOOL showInTransfer = ![station[EmbeddedOperatorPanelStationShowInTransferKey] respondsToSelector:@selector(boolValue)] ||
+            [station[EmbeddedOperatorPanelStationShowInTransferKey] boolValue];
+        if (!showInTransfer) {
+            continue;
+        }
+        if (destination.length == 0) {
+            continue;
+        }
+        if ([name.lowercaseString isEqualToString:lowercaseTrimmed] ||
+            [destination.lowercaseString isEqualToString:lowercaseTrimmed]) {
+            return station;
+        }
+    }
+
+    return nil;
+}
+
+- (NSString *)resolvedTransferDestinationFromInput:(NSString *)input {
+    NSDictionary<NSString *, NSString *> *station = [self stationEntryMatchingTransferInput:input];
+    if (station != nil) {
+        return station[EmbeddedOperatorPanelStationDestinationKey] ?: @"";
+    }
+    return [input stringByTrimmingCharactersInSet:NSCharacterSet.whitespaceAndNewlineCharacterSet];
+}
+
+- (void)refreshEmbeddedTransferLifecycle {
+    CallController *currentController = [self currentCallController];
+    if (self.embeddedTransferSourceController == nil) {
+        return;
+    }
+
+    if (currentController == nil || currentController != self.embeddedTransferSourceController) {
+        [self dismissEmbeddedTransferRestoringHold:NO];
+        return;
+    }
+
+    AKSIPCall *transferCall = self.embeddedTransferController.call;
+    if (transferCall != nil && transferCall.state == kAKSIPCallDisconnectedState) {
+        [self dismissEmbeddedTransferRestoringHold:YES];
+    }
+}
+
+- (void)updateEmbeddedTransferUI {
+    BOOL visible = !self.transferContainerStack.isHidden && self.embeddedTransferSourceController != nil;
+    AKSIPCall *transferCall = self.embeddedTransferController.call;
+    BOOL transferStarted = transferCall != nil && transferCall.state != kAKSIPCallDisconnectedState;
+    BOOL canCompleteTransfer = transferStarted && self.embeddedTransferController.isCallActive;
+
+    self.transferHeaderField.stringValue = transferStarted
+        ? (self.embeddedTransferController.displayedName.length > 0
+           ? self.embeddedTransferController.displayedName
+           : NSLocalizedString(@"Transfer", @"Operator panel transfer button."))
+        : NSLocalizedString(@"Weiterleiten an:", @"Transfer dialog destination label.");
+    self.transferStatusField.hidden = !visible ? YES : !transferStarted;
+    self.transferStatusField.stringValue = transferStarted ? (self.embeddedTransferController.status ?: @"") : @"";
+    self.transferDestinationField.hidden = transferStarted;
+    self.transferStationPopupButton.hidden = transferStarted;
+    self.transferDestinationField.enabled = !transferStarted;
+    self.transferStationPopupButton.enabled = !transferStarted && self.transferStationPopupButton.numberOfItems > 1;
+    self.transferCloseButton.title = transferStarted
+        ? NSLocalizedString(@"Cancel", @"Cancel button.")
+        : NSLocalizedString(@"Abbruch", @"Close button.");
+    self.transferSubmitButton.title = transferStarted
+        ? NSLocalizedString(@"Transfer", @"Transfer button.")
+        : NSLocalizedString(@"Call", @"Call button title in transfer sheet.");
+    self.transferSubmitButton.enabled = transferStarted
+        ? canCompleteTransfer
+        : ([self resolvedTransferDestinationFromInput:self.transferDestinationField.stringValue].length > 0);
+}
+
+- (void)dismissEmbeddedTransferRestoringHold:(BOOL)restoreHold {
+    CallController *sourceController = self.embeddedTransferSourceController;
+    if (restoreHold && sourceController != nil && sourceController.isCallActive && sourceController.isCallOnHold) {
+        [sourceController toggleCallHold];
+    }
+
+    self.transferContainerStack.hidden = YES;
+    self.transferDestinationField.stringValue = @"";
+    [self.transferStationPopupButton selectItemAtIndex:0];
+    self.embeddedTransferController = nil;
+    self.embeddedTransferSourceController = nil;
+    [self updateEmbeddedTransferUI];
+}
+
+- (void)closeEmbeddedTransfer:(id)sender {
+    AKSIPCall *transferCall = self.embeddedTransferController.call;
+    if (transferCall != nil && transferCall.state != kAKSIPCallDisconnectedState) {
+        [self.embeddedTransferController hangUpCall];
+    }
+    [self dismissEmbeddedTransferRestoringHold:YES];
+}
+
+- (void)submitEmbeddedTransfer:(id)sender {
+    if (self.embeddedTransferSourceController == nil || self.embeddedTransferController == nil) {
+        return;
+    }
+
+    AKSIPCall *transferCall = self.embeddedTransferController.call;
+    if (transferCall != nil && transferCall.state != kAKSIPCallDisconnectedState) {
+        [self.embeddedTransferController transferCall];
+        return;
+    }
+
+    NSString *destination = [self resolvedTransferDestinationFromInput:self.transferDestinationField.stringValue];
+    if (destination.length == 0) {
+        return;
+    }
+
+    NSDictionary<NSString *, NSString *> *matchedStation = [self stationEntryMatchingTransferInput:self.transferDestinationField.stringValue];
+    NSDictionary<NSString *, NSString *> *stationLikeEntry = matchedStation ?: @{
+        EmbeddedOperatorPanelStationNameKey: @"",
+        EmbeddedOperatorPanelStationDestinationKey: destination
+    };
+    AKSIPURI *uri = [self URIForStationKey:stationLikeEntry];
+    if (uri == nil) {
+        return;
+    }
+
+    [self.embeddedTransferController startTransferToURI:uri phoneLabel:nil automatically:NO];
+    [self updateEmbeddedTransferUI];
+}
+
+- (void)selectEmbeddedTransferStation:(id)sender {
+    NSInteger selectedIndex = self.transferStationPopupButton.indexOfSelectedItem - 1;
+    if (selectedIndex < 0) {
+        return;
+    }
+
+    NSInteger stationMatchIndex = -1;
+    NSInteger populatedIndex = 0;
+    for (NSInteger index = 0; index < self.stationKeys.count; ++index) {
+        NSString *destination = self.stationKeys[index][EmbeddedOperatorPanelStationDestinationKey];
+        if (destination.length == 0) {
+            continue;
+        }
+        if (populatedIndex == selectedIndex) {
+            stationMatchIndex = index;
+            break;
+        }
+        populatedIndex += 1;
+    }
+
+    if (stationMatchIndex < 0) {
+        return;
+    }
+
+    NSString *destination = self.stationKeys[(NSUInteger)stationMatchIndex][EmbeddedOperatorPanelStationDestinationKey] ?: @"";
+    self.transferDestinationField.stringValue = destination;
+    [self.transferStationPopupButton selectItemAtIndex:0];
+    [self updateEmbeddedTransferUI];
+}
+
+- (NSArray<NSString *> *)stationNameCompletionsForSubstring:(NSString *)substring {
+    NSString *trimmed = [substring stringByTrimmingCharactersInSet:NSCharacterSet.whitespaceAndNewlineCharacterSet];
+    if (trimmed.length == 0) {
+        return @[];
+    }
+
+    NSString *lowercaseTrimmed = trimmed.lowercaseString;
+    NSMutableArray<NSString *> *completions = [[NSMutableArray alloc] init];
+    NSMutableSet<NSString *> *seen = [[NSMutableSet alloc] init];
+    for (NSDictionary<NSString *, NSString *> *station in self.stationKeys) {
+        NSString *name = station[EmbeddedOperatorPanelStationNameKey] ?: @"";
+        NSString *destination = station[EmbeddedOperatorPanelStationDestinationKey] ?: @"";
+        if (name.length == 0 || destination.length == 0) {
+            continue;
+        }
+        NSString *lowercaseName = name.lowercaseString;
+        if (([lowercaseName hasPrefix:lowercaseTrimmed] || [lowercaseName containsString:lowercaseTrimmed]) &&
+            ![seen containsObject:lowercaseName]) {
+            [completions addObject:name];
+            [seen addObject:lowercaseName];
+        }
+    }
+    return [completions copy];
+}
+
+- (NSArray<NSString *> *)control:(NSControl *)control
+                        textView:(NSTextView *)textView
+                     completions:(NSArray<NSString *> *)words
+            forPartialWordRange:(NSRange)charRange
+            indexOfSelectedItem:(NSInteger *)index {
+    if (control != self.transferDestinationField) {
+        return @[];
+    }
+
+    NSString *partial = [[textView string] substringWithRange:charRange];
+    return [self stationNameCompletionsForSubstring:partial];
+}
+
+- (void)controlTextDidChange:(NSNotification *)notification {
+    if (notification.object == self.transferDestinationField) {
+        [self updateEmbeddedTransferUI];
+    }
+}
+
 - (void)showStationConfiguration:(id)sender {
-    NSScrollView *scrollView = [[NSScrollView alloc] initWithFrame:NSMakeRect(0.0, 0.0, 620.0, 420.0)];
+    NSScrollView *scrollView = [[NSScrollView alloc] initWithFrame:NSMakeRect(0.0, 0.0, 720.0, 420.0)];
     scrollView.hasVerticalScroller = YES;
     scrollView.drawsBackground = NO;
     scrollView.borderType = NSNoBorder;
 
     NSTextField *descriptionLabel = [NSTextField wrappingLabelWithString:NSLocalizedString(@"Set name and number for each station key.", @"Operator panel station editor text.")];
     descriptionLabel.font = [NSFont systemFontOfSize:14.0];
-    [descriptionLabel.widthAnchor constraintEqualToConstant:620.0].active = YES;
+    [descriptionLabel.widthAnchor constraintEqualToConstant:720.0].active = YES;
 
     NSTextField *xmlLabel = [NSTextField labelWithString:NSLocalizedString(@"Station Keys XML:", @"Station key XML source label.")];
     xmlLabel.font = [NSFont systemFontOfSize:13.0 weight:NSFontWeightSemibold];
 
-    NSTextField *xmlSourceField = [[NSTextField alloc] initWithFrame:NSMakeRect(0.0, 0.0, 620.0, 24.0)];
+    NSTextField *xmlSourceField = [[NSTextField alloc] initWithFrame:NSMakeRect(0.0, 0.0, 720.0, 24.0)];
     xmlSourceField.placeholderString = NSLocalizedString(@"URL or local XML path", @"Station key XML source placeholder.");
     xmlSourceField.stringValue = [self.defaults stringForKey:EmbeddedOperatorPanelStationsXMLSourceKey] ?: @"";
-    [xmlSourceField.widthAnchor constraintGreaterThanOrEqualToConstant:620.0].active = YES;
+    [xmlSourceField.widthAnchor constraintGreaterThanOrEqualToConstant:720.0].active = YES;
 
     NSButton *chooseFileButton = [NSButton buttonWithTitle:NSLocalizedString(@"Choose File…", @"Choose XML file button.")
                                                     target:self
@@ -1131,7 +1469,7 @@ didStartElement:(NSString *)elementName
     [accessoryStack addArrangedSubview:descriptionLabel];
     [accessoryStack addArrangedSubview:xmlRow];
     [accessoryStack addArrangedSubview:scrollView];
-    [accessoryStack.widthAnchor constraintEqualToConstant:620.0].active = YES;
+    [accessoryStack.widthAnchor constraintEqualToConstant:720.0].active = YES;
 
     NSButton *cancelButton = [NSButton buttonWithTitle:NSLocalizedString(@"Cancel", @"Cancel button.")
                                                 target:self
@@ -1221,6 +1559,7 @@ didStartElement:(NSString *)elementName
     self.stationConfigurationSheet = nil;
     self.stationConfigurationNameFields = nil;
     self.stationConfigurationNumberFields = nil;
+    self.stationConfigurationTransferCheckboxes = nil;
     self.stationConfigurationXMLSourceField = nil;
     self.stationConfigurationGridView = nil;
     self.stationConfigurationScrollView = nil;
@@ -1232,6 +1571,9 @@ didStartElement:(NSString *)elementName
     }
     for (NSTextField *field in self.stationConfigurationNumberFields) {
         field.stringValue = @"";
+    }
+    for (NSButton *checkbox in self.stationConfigurationTransferCheckboxes) {
+        checkbox.state = NSControlStateValueOn;
     }
 }
 
@@ -1292,7 +1634,7 @@ didStartElement:(NSString *)elementName
     }
 
     NSError *error = nil;
-    NSArray<NSDictionary<NSString *, NSString *> *> *imported = [self stationKeysImportedFromXMLURL:url error:&error];
+    NSArray<NSDictionary<NSString *, id> *> *imported = [self stationKeysImportedFromXMLURL:url error:&error];
     if (imported.count == 0) {
         NSAlert *alert = [[NSAlert alloc] init];
         alert.alertStyle = NSAlertStyleWarning;
@@ -1340,13 +1682,14 @@ didStartElement:(NSString *)elementName
         return @[];
     }
 
-    NSMutableArray<NSDictionary<NSString *, NSString *> *> *normalized = [[NSMutableArray alloc] initWithCapacity:stations.count];
+    NSMutableArray<NSDictionary<NSString *, id> *> *normalized = [[NSMutableArray alloc] initWithCapacity:stations.count];
     for (NSDictionary<NSString *, NSString *> *station in stations) {
         NSString *name = [station[EmbeddedOperatorPanelStationNameKey] isKindOfClass:[NSString class]] ? station[EmbeddedOperatorPanelStationNameKey] : @"";
         NSString *destination = [station[EmbeddedOperatorPanelStationDestinationKey] isKindOfClass:[NSString class]] ? station[EmbeddedOperatorPanelStationDestinationKey] : @"";
         [normalized addObject:@{
             EmbeddedOperatorPanelStationNameKey: [name stringByTrimmingCharactersInSet:NSCharacterSet.whitespaceAndNewlineCharacterSet] ?: @"",
-            EmbeddedOperatorPanelStationDestinationKey: [destination stringByTrimmingCharactersInSet:NSCharacterSet.whitespaceAndNewlineCharacterSet] ?: @""
+            EmbeddedOperatorPanelStationDestinationKey: [destination stringByTrimmingCharactersInSet:NSCharacterSet.whitespaceAndNewlineCharacterSet] ?: @"",
+            EmbeddedOperatorPanelStationShowInTransferKey: @YES
         }];
     }
 
@@ -1355,23 +1698,27 @@ didStartElement:(NSString *)elementName
 
 - (void)loadStationKeys {
     NSArray *stored = [self.defaults arrayForKey:EmbeddedOperatorPanelStationsKey];
-    NSMutableArray<NSDictionary<NSString *, NSString *> *> *result = [[NSMutableArray alloc] init];
+    NSMutableArray<NSDictionary<NSString *, id> *> *result = [[NSMutableArray alloc] init];
     for (id entry in stored) {
         if (![entry isKindOfClass:[NSDictionary class]]) {
             continue;
         }
         NSString *name = [entry[EmbeddedOperatorPanelStationNameKey] isKindOfClass:[NSString class]] ? entry[EmbeddedOperatorPanelStationNameKey] : @"";
         NSString *destination = [entry[EmbeddedOperatorPanelStationDestinationKey] isKindOfClass:[NSString class]] ? entry[EmbeddedOperatorPanelStationDestinationKey] : @"";
+        BOOL showInTransfer = ![entry[EmbeddedOperatorPanelStationShowInTransferKey] respondsToSelector:@selector(boolValue)] ||
+            [entry[EmbeddedOperatorPanelStationShowInTransferKey] boolValue];
         [result addObject:@{
             EmbeddedOperatorPanelStationNameKey: name,
-            EmbeddedOperatorPanelStationDestinationKey: destination
+            EmbeddedOperatorPanelStationDestinationKey: destination,
+            EmbeddedOperatorPanelStationShowInTransferKey: @(showInTransfer)
         }];
     }
     if (result.count == 0) {
         while (result.count < kEmbeddedOperatorPanelStationCount) {
             [result addObject:@{
                 EmbeddedOperatorPanelStationNameKey: @"",
-                EmbeddedOperatorPanelStationDestinationKey: @""
+                EmbeddedOperatorPanelStationDestinationKey: @"",
+                EmbeddedOperatorPanelStationShowInTransferKey: @YES
             }];
         }
     }

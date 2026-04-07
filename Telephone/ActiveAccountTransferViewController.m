@@ -23,12 +23,12 @@
 static NSString * const ActiveAccountTransferStationsKey = @"OperatorPanelStations";
 static NSString * const ActiveAccountTransferStationNameKey = @"name";
 static NSString * const ActiveAccountTransferStationDestinationKey = @"destination";
+static NSString * const ActiveAccountTransferStationShowInTransferKey = @"showInTransfer";
 
 @interface ActiveAccountTransferViewController ()
 
 @property(nonatomic, copy) NSArray<NSDictionary<NSString *, NSString *> *> *stationKeys;
-
-- (id)tokenField:(NSTokenField *)tokenField representedObjectForEditingString:(NSString *)editingString;
+- (NSArray *)resolvedCallDestinations;
 
 @end
 
@@ -49,11 +49,12 @@ static NSString * const ActiveAccountTransferStationDestinationKey = @"destinati
 }
 
 - (IBAction)makeCallToTransferDestination:(id)sender {
-    if ([[[self callDestinationField] objectValue] count] == 0) {
+    NSArray *resolvedCallDestinations = [self resolvedCallDestinations];
+    if (resolvedCallDestinations.count == 0 || self.callDestinationURIIndex >= resolvedCallDestinations.count) {
         return;
     }
     
-    NSDictionary *callDestinationDict = [[self callDestinationField] objectValue][0][[self callDestinationURIIndex]];
+    NSDictionary *callDestinationDict = resolvedCallDestinations[self.callDestinationURIIndex];
     NSString *phoneLabel = callDestinationDict[kPhoneLabel];
     
     AKSIPURI *uri = [self callDestinationURI];
@@ -81,15 +82,7 @@ static NSString * const ActiveAccountTransferStationDestinationKey = @"destinati
         return;
     }
 
-    NSString *name = station[ActiveAccountTransferStationNameKey];
-    NSString *editingString = name.length > 0 ? [NSString stringWithFormat:@"%@ <%@>", name, destination] : destination;
-    id representedObject = [self tokenField:self.callDestinationField representedObjectForEditingString:editingString];
-    if (representedObject != nil) {
-        self.callDestinationField.objectValue = @[representedObject];
-        self.callDestinationField.tokenStyle = NSTokenStyleRounded;
-    } else {
-        self.callDestinationField.stringValue = editingString;
-    }
+    [self setCallDestinationString:destination];
 
     [popupButton selectItemAtIndex:0];
 }
@@ -103,6 +96,11 @@ static NSString * const ActiveAccountTransferStationDestinationKey = @"destinati
         }
         NSString *name = [entry[ActiveAccountTransferStationNameKey] isKindOfClass:[NSString class]] ? entry[ActiveAccountTransferStationNameKey] : @"";
         NSString *destination = [entry[ActiveAccountTransferStationDestinationKey] isKindOfClass:[NSString class]] ? entry[ActiveAccountTransferStationDestinationKey] : @"";
+        BOOL showInTransfer = ![entry[ActiveAccountTransferStationShowInTransferKey] respondsToSelector:@selector(boolValue)] ||
+            [entry[ActiveAccountTransferStationShowInTransferKey] boolValue];
+        if (!showInTransfer) {
+            continue;
+        }
         if (destination.length == 0) {
             continue;
         }

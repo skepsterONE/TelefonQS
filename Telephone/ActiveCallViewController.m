@@ -20,7 +20,6 @@
 
 #import "AKNSWindow+Resizing.h"
 #import "AKSIPCall.h"
-
 #import "CallController.h"
 #import "CallTransferController.h"
 #import "EndedCallViewController.h"
@@ -293,9 +292,8 @@ typedef NS_ENUM(NSUInteger, AKCallAccessoryMode) {
     if (![[self callController] isCallOnHold]) {
         [[self callController] toggleCallHold];
     }
-    
-    CallTransferController *callTransferController = [[self callController] callTransferController];
 
+    CallTransferController *callTransferController = [[self callController] callTransferController];
     [[[self callController] window] beginSheet:[callTransferController window] completionHandler:nil];
 }
 
@@ -354,6 +352,7 @@ typedef NS_ENUM(NSUInteger, AKCallAccessoryMode) {
          setStatus:[NSString stringWithFormat:@"%02ld:%02ld:%02ld",
                     (seconds / 3600) % 24, (seconds / 60) % 60, seconds % 60]];
     }
+
 }
 
 - (void)showProgress {
@@ -387,7 +386,6 @@ typedef NS_ENUM(NSUInteger, AKCallAccessoryMode) {
     self.hangUpButton.enabled = NO;
     self.callAccessoryControl.enabled = NO;
 }
-
 
 #pragma mark -
 #pragma mark AKActiveCallViewDelegate protocol
