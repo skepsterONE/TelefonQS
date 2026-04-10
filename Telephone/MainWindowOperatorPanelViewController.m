@@ -471,8 +471,6 @@ didStartElement:(NSString *)elementName
 @property(nonatomic) NSButton *transferSubmitButton;
 @property(nonatomic) NSButton *muteButton;
 @property(nonatomic) NSButton *holdButton;
-@property(nonatomic) NSButton *transferButton;
-@property(nonatomic) NSButton *recallButton;
 @property(nonatomic) NSButton *answerButton;
 @property(nonatomic) NSButton *hangUpButton;
 @property(nonatomic) NSMutableArray<NSButton *> *stationButtons;
@@ -734,14 +732,6 @@ didStartElement:(NSString *)elementName
                                            action:@selector(toggleHold:)
                                        symbolName:@"pause.fill"
                                       symbolColor:[NSColor colorWithWhite:0.95 alpha:0.95]];
-    self.transferButton = [self actionButtonWithTitle:NSLocalizedString(@"Weiterleiten", @"Operator panel transfer button.")
-                                               action:@selector(showTransfer:)
-                                           symbolName:@"arrow.left.arrow.right"
-                                          symbolColor:[NSColor colorWithWhite:0.95 alpha:0.95]];
-    self.recallButton = [self actionButtonWithTitle:NSLocalizedString(@"Rückruf", @"Operator panel call back button.")
-                                             action:@selector(recall:)
-                                         symbolName:@"phone.arrow.up.right.fill"
-                                        symbolColor:[NSColor colorWithWhite:0.95 alpha:0.95]];
     self.answerButton = [self actionButtonWithTitle:NSLocalizedString(@"Answer", @"Call answer button.")
                                              action:@selector(answer:)
                                          symbolName:@"phone.fill"
@@ -754,17 +744,14 @@ didStartElement:(NSString *)elementName
     NSStackView *actionsStack = [[NSStackView alloc] init];
     NSStackView *answerHangUpRow = [self rowStackWithViews:@[self.answerButton, self.hangUpButton]];
     NSStackView *muteHoldRow = [self rowStackWithViews:@[self.muteButton, self.holdButton]];
-    NSStackView *transferRecallRow = [self rowStackWithViews:@[self.transferButton, self.recallButton]];
 
     actionsStack.orientation = NSUserInterfaceLayoutOrientationVertical;
     actionsStack.spacing = 10.0;
     actionsStack.translatesAutoresizingMaskIntoConstraints = NO;
     [actionsStack addArrangedSubview:answerHangUpRow];
     [actionsStack addArrangedSubview:muteHoldRow];
-    [actionsStack addArrangedSubview:transferRecallRow];
     [answerHangUpRow.widthAnchor constraintEqualToConstant:kEmbeddedOperatorPanelContentWidth].active = YES;
     [muteHoldRow.widthAnchor constraintEqualToConstant:kEmbeddedOperatorPanelContentWidth].active = YES;
-    [transferRecallRow.widthAnchor constraintEqualToConstant:kEmbeddedOperatorPanelContentWidth].active = YES;
 
     NSTextField *transferDestinationField = [[NSTextField alloc] initWithFrame:NSMakeRect(0.0, 0.0, 230.0, 24.0)];
     transferDestinationField.translatesAutoresizingMaskIntoConstraints = NO;
@@ -981,7 +968,6 @@ didStartElement:(NSString *)elementName
     BOOL canHoldOrTransfer = [self currentCallCanHoldOrTransfer];
     BOOL canAnswer = controller.call.state == kAKSIPCallIncomingState;
     BOOL canHangUp = controller.call != nil && controller.call.state != kAKSIPCallDisconnectedState;
-    BOOL canRecall = controller.redialURI != nil;
 
     [self.muteButton setTitle:(controller.call.isMicrophoneMuted
                                ? NSLocalizedString(@"Unmute", @"Unmute. Call menu item.")
@@ -994,15 +980,11 @@ didStartElement:(NSString *)elementName
 
     self.muteButton.enabled = canMute;
     self.holdButton.enabled = canHoldOrTransfer;
-    self.transferButton.enabled = canHoldOrTransfer;
     self.answerButton.enabled = canAnswer;
     self.hangUpButton.enabled = canHangUp;
-    self.recallButton.enabled = canRecall;
 
     [(EmbeddedOperatorPanelActionButton *)self.muteButton applyEmbeddedStyle];
     [(EmbeddedOperatorPanelActionButton *)self.holdButton applyEmbeddedStyle];
-    [(EmbeddedOperatorPanelActionButton *)self.transferButton applyEmbeddedStyle];
-    [(EmbeddedOperatorPanelActionButton *)self.recallButton applyEmbeddedStyle];
     [(EmbeddedOperatorPanelActionButton *)self.answerButton applyEmbeddedStyle];
     [(EmbeddedOperatorPanelActionButton *)self.hangUpButton applyEmbeddedStyle];
 
@@ -1038,8 +1020,6 @@ didStartElement:(NSString *)elementName
 
     [(EmbeddedOperatorPanelActionButton *)self.muteButton applyEmbeddedStyle];
     [(EmbeddedOperatorPanelActionButton *)self.holdButton applyEmbeddedStyle];
-    [(EmbeddedOperatorPanelActionButton *)self.transferButton applyEmbeddedStyle];
-    [(EmbeddedOperatorPanelActionButton *)self.recallButton applyEmbeddedStyle];
     [(EmbeddedOperatorPanelActionButton *)self.answerButton applyEmbeddedStyle];
     [(EmbeddedOperatorPanelActionButton *)self.hangUpButton applyEmbeddedStyle];
 
@@ -1103,10 +1083,6 @@ didStartElement:(NSString *)elementName
     [self dismissEmbeddedTransferRestoringHold:NO];
     [[controller activeCallViewController] showCallTransferSheet:sender];
     [controller.activeCallViewController.view.window makeKeyAndOrderFront:nil];
-}
-
-- (void)recall:(id)sender {
-    [[self currentCallController] redial];
 }
 
 - (void)answer:(id)sender {

@@ -29,4 +29,6 @@
 - (void)allowTransfer;
 - (void)disallowTransfer;
 
+- (void)showTransferConfirmation;
+
 @end

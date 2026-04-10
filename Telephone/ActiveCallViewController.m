@@ -239,6 +239,202 @@ typedef NS_ENUM(NSUInteger, AKCallAccessoryMode) {
 
 @end
 
+@interface ActiveCallCircleImageButton : NSButton
+
+@property(nonatomic) CGFloat diameter;
+@property(nonatomic, strong) NSImageView *iconImageView;
+
+- (instancetype)initWithImageName:(NSString *)imageName diameter:(CGFloat)diameter;
+
+@end
+
+@implementation ActiveCallCircleImageButton
+
+- (instancetype)initWithImageName:(NSString *)imageName diameter:(CGFloat)diameter {
+    self = [super initWithFrame:NSMakeRect(0.0, 0.0, diameter, diameter)];
+    if (self != nil) {
+        self.diameter = diameter;
+        self.bordered = NO;
+        self.bezelStyle = NSBezelStyleRegularSquare;
+        self.buttonType = NSButtonTypeMomentaryPushIn;
+        self.title = @"";
+        self.translatesAutoresizingMaskIntoConstraints = NO;
+        self.refusesFirstResponder = YES;
+        self.focusRingType = NSFocusRingTypeNone;
+        self.wantsLayer = YES;
+        self.layer.backgroundColor = NSColor.clearColor.CGColor;
+        [self.widthAnchor constraintEqualToConstant:diameter].active = YES;
+        [self.heightAnchor constraintEqualToConstant:diameter].active = YES;
+
+        NSImageView *imageView = [[NSImageView alloc] initWithFrame:NSZeroRect];
+        imageView.translatesAutoresizingMaskIntoConstraints = NO;
+        imageView.image = [NSImage imageNamed:imageName];
+        imageView.imageScaling = NSImageScaleAxesIndependently;
+        imageView.imageAlignment = NSImageAlignCenter;
+        [self addSubview:imageView];
+        [NSLayoutConstraint activateConstraints:@[
+            [imageView.topAnchor constraintEqualToAnchor:self.topAnchor],
+            [imageView.leadingAnchor constraintEqualToAnchor:self.leadingAnchor],
+            [imageView.trailingAnchor constraintEqualToAnchor:self.trailingAnchor],
+            [imageView.bottomAnchor constraintEqualToAnchor:self.bottomAnchor]
+        ]];
+        self.iconImageView = imageView;
+    }
+    return self;
+}
+
+- (NSSize)intrinsicContentSize {
+    return NSMakeSize(self.diameter, self.diameter);
+}
+
+- (void)setEnabled:(BOOL)enabled {
+    [super setEnabled:enabled];
+    self.alphaValue = enabled ? 1.0 : 0.42;
+}
+
+@end
+
+@interface ActiveCallTransferButton : NSButton
+
+@property(nonatomic, copy) NSString *symbolName;
+@property(nonatomic) NSColor *symbolColor;
+
+- (void)applyStyle;
+
+@end
+
+@implementation ActiveCallTransferButton {
+    NSTrackingArea *_trackingArea;
+    BOOL _hovering;
+}
+
+- (instancetype)initWithFrame:(NSRect)frameRect {
+    if ((self = [super initWithFrame:frameRect])) {
+        self.bordered = NO;
+        self.wantsLayer = YES;
+        self.layer.cornerRadius = 16.0;
+        self.layer.masksToBounds = NO;
+        self.symbolColor = [NSColor colorWithWhite:0.95 alpha:0.95];
+    }
+    return self;
+}
+
+- (void)updateTrackingAreas {
+    [super updateTrackingAreas];
+    if (_trackingArea != nil) {
+        [self removeTrackingArea:_trackingArea];
+    }
+    _trackingArea = [[NSTrackingArea alloc] initWithRect:self.bounds
+                                                 options:(NSTrackingMouseEnteredAndExited |
+                                                          NSTrackingActiveInActiveApp |
+                                                          NSTrackingInVisibleRect)
+                                                   owner:self
+                                                userInfo:nil];
+    [self addTrackingArea:_trackingArea];
+}
+
+- (void)mouseEntered:(NSEvent *)event {
+    _hovering = YES;
+    [self applyStyle];
+}
+
+- (void)mouseExited:(NSEvent *)event {
+    _hovering = NO;
+    [self applyStyle];
+}
+
+- (void)setEnabled:(BOOL)enabled {
+    [super setEnabled:enabled];
+    [self applyStyle];
+}
+
+- (void)setTitle:(NSString *)title {
+    [super setTitle:title];
+    [self setNeedsDisplay:YES];
+}
+
+- (void)setSymbolName:(NSString *)symbolName {
+    _symbolName = [symbolName copy];
+    [self setNeedsDisplay:YES];
+}
+
+- (void)setSymbolColor:(NSColor *)symbolColor {
+    _symbolColor = symbolColor;
+    [self setNeedsDisplay:YES];
+}
+
+- (void)viewDidChangeEffectiveAppearance {
+    [self applyStyle];
+}
+
+- (void)applyStyle {
+    BOOL darkAppearance = YES;
+    NSColor *fillColor = self.enabled
+        ? (_hovering
+           ? [NSColor colorWithSRGBRed:0.26 green:0.29 blue:0.38 alpha:0.96]
+           : [NSColor colorWithSRGBRed:0.19 green:0.22 blue:0.30 alpha:0.92])
+        : [NSColor colorWithSRGBRed:0.15 green:0.17 blue:0.23 alpha:0.58];
+    NSColor *borderColor = self.enabled
+        ? (_hovering
+           ? [NSColor colorWithWhite:1.0 alpha:0.18]
+           : [NSColor colorWithWhite:1.0 alpha:0.09])
+        : [NSColor colorWithWhite:1.0 alpha:0.05];
+
+    self.layer.backgroundColor = fillColor.CGColor;
+    self.layer.borderColor = borderColor.CGColor;
+    self.layer.borderWidth = 1.0;
+    self.layer.shadowColor = (darkAppearance ? [NSColor colorWithWhite:0.0 alpha:0.24] : [NSColor blackColor]).CGColor;
+    self.layer.shadowOpacity = 1.0;
+    self.layer.shadowOffset = CGSizeMake(0.0, _hovering ? -1.0 : -2.0);
+    self.layer.shadowRadius = _hovering ? 10.0 : 14.0;
+    [self setNeedsDisplay:YES];
+}
+
+- (void)drawRect:(NSRect)dirtyRect {
+    [[NSColor clearColor] setFill];
+    NSRectFill(dirtyRect);
+
+    NSDictionary *attributes = @{
+        NSForegroundColorAttributeName: self.enabled
+            ? [NSColor colorWithWhite:0.985 alpha:0.98]
+            : [NSColor colorWithWhite:0.82 alpha:0.48],
+        NSFontAttributeName: [NSFont systemFontOfSize:16.0 weight:NSFontWeightSemibold]
+    };
+    NSSize titleSize = [self.title sizeWithAttributes:attributes];
+
+    NSImage *symbolImage = nil;
+    if (self.symbolName.length > 0) {
+        NSImage *image = [NSImage imageWithSystemSymbolName:self.symbolName accessibilityDescription:self.title];
+        NSColor *symbolColor = self.enabled ? self.symbolColor : [self.symbolColor colorWithAlphaComponent:0.45];
+        NSImageSymbolConfiguration *configuration = [NSImageSymbolConfiguration configurationWithPointSize:18.0
+                                                                                                     weight:NSFontWeightSemibold];
+        if (@available(macOS 12.0, *)) {
+            configuration = [configuration configurationByApplyingConfiguration:[NSImageSymbolConfiguration configurationWithHierarchicalColor:symbolColor]];
+        }
+        symbolImage = [image imageWithSymbolConfiguration:configuration];
+    }
+
+    CGFloat contentWidth = titleSize.width + (symbolImage != nil ? 31.0 : 0.0);
+    CGFloat startX = floor((NSWidth(self.bounds) - contentWidth) / 2.0);
+    CGFloat iconSize = symbolImage != nil ? 19.0 : 0.0;
+    CGFloat spacing = symbolImage != nil ? 12.0 : 0.0;
+    CGFloat centerY = floor(NSMidY(self.bounds));
+
+    if (symbolImage != nil) {
+        NSRect imageRect = NSMakeRect(startX,
+                                      centerY - (iconSize / 2.0),
+                                      iconSize,
+                                      iconSize);
+        [symbolImage drawInRect:imageRect];
+    }
+
+    NSPoint titlePoint = NSMakePoint(startX + iconSize + spacing,
+                                     centerY - (titleSize.height / 2.0) + 1.0);
+    [self.title drawAtPoint:titlePoint withAttributes:attributes];
+}
+
+@end
+
 
 @interface ActiveCallViewController () <NSMenuItemValidation>
 
@@ -250,6 +446,8 @@ typedef NS_ENUM(NSUInteger, AKCallAccessoryMode) {
 @property(nonatomic) IBOutlet NSProgressIndicator *callProgressIndicator;
 @property(nonatomic) IBOutlet NSButton *hangUpButton;
 @property(nonatomic) AKCallAccessoryControl *callAccessoryControl;
+@property(nonatomic) ActiveCallCircleImageButton *hangUpCircleButton;
+@property(nonatomic) ActiveCallTransferButton *transferAccessoryButton;
 
 @end
 
@@ -305,19 +503,49 @@ typedef NS_ENUM(NSUInteger, AKCallAccessoryMode) {
     self.hangUpButton.hidden = YES;
 
     AKCallAccessoryControl *callAccessoryControl = [[AKCallAccessoryControl alloc] initWithFrame:NSMakeRect(0.0, 0.0, 30.0, 30.0)];
-    callAccessoryControl.translatesAutoresizingMaskIntoConstraints = NO;
+    callAccessoryControl.translatesAutoresizingMaskIntoConstraints = YES;
     callAccessoryControl.target = self;
     callAccessoryControl.action = @selector(hangUpCall:);
     callAccessoryControl.enabled = self.hangUpButton.enabled;
     [self.view addSubview:callAccessoryControl];
     self.callAccessoryControl = callAccessoryControl;
 
+    NSRect viewFrame = self.view.frame;
+    viewFrame.size.width = 360.0;
+    viewFrame.size.height = 170.0;
+    self.view.frame = viewFrame;
+
+    callAccessoryControl.hidden = YES;
+
+    ActiveCallTransferButton *transferAccessoryButton = [[ActiveCallTransferButton alloc] initWithFrame:NSZeroRect];
+    transferAccessoryButton.translatesAutoresizingMaskIntoConstraints = NO;
+    transferAccessoryButton.target = self;
+    transferAccessoryButton.action = @selector(showCallTransferSheet:);
+    transferAccessoryButton.title = NSLocalizedString(@"Weiterleiten", @"Transfer button title.");
+    transferAccessoryButton.symbolName = @"arrow.left.arrow.right";
+    transferAccessoryButton.symbolColor = [NSColor colorWithWhite:0.95 alpha:0.95];
+    [transferAccessoryButton.heightAnchor constraintEqualToConstant:64.0].active = YES;
+    [transferAccessoryButton.widthAnchor constraintEqualToConstant:250.0].active = YES;
+    [self.view addSubview:transferAccessoryButton];
+    self.transferAccessoryButton = transferAccessoryButton;
+
+    ActiveCallCircleImageButton *hangUpCircleButton =
+        [[ActiveCallCircleImageButton alloc] initWithImageName:@"incoming-accept" diameter:88.0];
+    hangUpCircleButton.target = self;
+    hangUpCircleButton.action = @selector(hangUpCall:);
+    [self.view addSubview:hangUpCircleButton];
+    self.hangUpCircleButton = hangUpCircleButton;
+
     [NSLayoutConstraint activateConstraints:@[
-        [callAccessoryControl.trailingAnchor constraintEqualToAnchor:self.view.trailingAnchor constant:-20.0],
-        [callAccessoryControl.centerYAnchor constraintEqualToAnchor:self.displayedNameField.centerYAnchor],
-        [callAccessoryControl.widthAnchor constraintEqualToConstant:30.0],
-        [callAccessoryControl.heightAnchor constraintEqualToConstant:30.0],
+        [transferAccessoryButton.leadingAnchor constraintEqualToAnchor:self.displayedNameField.leadingAnchor constant:0.0],
+        [transferAccessoryButton.topAnchor constraintEqualToAnchor:self.statusField.bottomAnchor constant:20.0],
+        [hangUpCircleButton.leadingAnchor constraintEqualToAnchor:transferAccessoryButton.trailingAnchor constant:30.0],
+        [hangUpCircleButton.centerYAnchor constraintEqualToAnchor:transferAccessoryButton.centerYAnchor],
+        [hangUpCircleButton.trailingAnchor constraintLessThanOrEqualToAnchor:self.view.trailingAnchor constant:-26.0],
+        [hangUpCircleButton.bottomAnchor constraintLessThanOrEqualToAnchor:self.view.bottomAnchor constant:-18.0]
     ]];
+
+    [self updateTransferAccessoryButtonState];
 }
 
 - (void)startCallTimer {
@@ -360,6 +588,7 @@ typedef NS_ENUM(NSUInteger, AKCallAccessoryMode) {
         self.showingProgress = YES;
     }
     [self showCallProgressIndicator];
+    [self updateTransferAccessoryButtonState];
 }
 
 - (void)showHangUp {
@@ -367,6 +596,7 @@ typedef NS_ENUM(NSUInteger, AKCallAccessoryMode) {
         self.showingProgress = NO;
     }
     [self showHangUpButton];
+    [self updateTransferAccessoryButtonState];
 }
 
 - (void)showCallProgressIndicator {
@@ -380,11 +610,21 @@ typedef NS_ENUM(NSUInteger, AKCallAccessoryMode) {
 - (void)allowHangUp {
     self.hangUpButton.enabled = YES;
     self.callAccessoryControl.enabled = YES;
+    [self updateTransferAccessoryButtonState];
 }
 
 - (void)disallowHangUp {
     self.hangUpButton.enabled = NO;
     self.callAccessoryControl.enabled = NO;
+    [self updateTransferAccessoryButtonState];
+}
+
+- (void)updateTransferAccessoryButtonState {
+    BOOL enabled = (self.callController.call.state == kAKSIPCallConfirmedState &&
+                    !self.callController.call.isOnRemoteHold);
+    self.transferAccessoryButton.enabled = enabled;
+    [self.transferAccessoryButton applyStyle];
+    self.hangUpCircleButton.enabled = self.hangUpButton.enabled;
 }
 
 #pragma mark -

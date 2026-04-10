@@ -5560,7 +5560,7 @@
 					"\"$(SRCROOT)/ThirdParty/LibreSSL/lib\"",
 					"\"$(SRCROOT)/ThirdParty/Opus/lib\"",
 				);
-				MARKETING_VERSION = 2.5;
+				MARKETING_VERSION = 3.8;
 				OTHER_LDFLAGS = (
 					"-lpjsua-arm-apple-darwin",
 					"-lpjsip-ua-arm-apple-darwin",
@@ -5615,7 +5615,7 @@
 					"\"$(SRCROOT)/ThirdParty/LibreSSL/lib\"",
 					"\"$(SRCROOT)/ThirdParty/Opus/lib\"",
 				);
-				MARKETING_VERSION = 2.5;
+				MARKETING_VERSION = 3.8;
 				OTHER_LDFLAGS = (
 					"-lpjsua-arm-apple-darwin",
 					"-lpjsip-ua-arm-apple-darwin",

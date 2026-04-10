@@ -89,7 +89,19 @@
 
 - (void)transferCall {
     self.automaticallyTransfersOnConfirm = NO;
+    [self.activeCallTransferViewController showTransferConfirmation];
+    [self.activeCallTransferViewController disallowTransfer];
     [[[self sourceCallController] call] attendedTransferToCall:[self call]];
+
+    NSWindowController *sourceCallController = self.sourceCallController;
+    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0.65 * NSEC_PER_SEC)),
+                   dispatch_get_main_queue(), ^{
+        if (self.window.sheetParent != nil) {
+            [self.window.sheetParent endSheet:self.window];
+        }
+        [self close];
+        [sourceCallController close];
+    });
 }
 
 - (void)startTransferToURI:(AKSIPURI *)destinationURI phoneLabel:(NSString *)phoneLabel automatically:(BOOL)automaticallyTransfer {

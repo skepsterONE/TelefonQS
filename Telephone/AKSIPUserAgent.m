@@ -369,10 +369,17 @@ static const BOOL kAKSIPUserAgentDefaultLocksCodec = YES;
 
     loggingConfig.level = (unsigned)[self logLevel];
     loggingConfig.console_level = (unsigned)[self consoleLogLevel];
+    mediaConfig.quality = 10;
+    mediaConfig.ptime = 20;
     mediaConfig.no_vad = ![self detectsVoiceActivity];
     mediaConfig.enable_ice = [self usesICE];
     mediaConfig.snd_auto_close_time = 1;
     mediaConfig.ec_options = PJMEDIA_ECHO_USE_SW_ECHO;
+    mediaConfig.ec_tail_len = 200;
+    mediaConfig.jb_init = 80;
+    mediaConfig.jb_min_pre = 60;
+    mediaConfig.jb_max_pre = 240;
+    mediaConfig.jb_max = 360;
 
     if (self.usesQoS) {
         transportConfig.qos_params.flags = PJ_QOS_PARAM_HAS_DSCP;
